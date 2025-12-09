@@ -15,15 +15,15 @@ class IdPage extends StatefulWidget {
   State<IdPage> createState() => _IdPageState();
 }
 
-class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
+class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   Map<String, dynamic>? _idData;
   bool _isLoading = true;
   bool _isTravelMode = false;
   bool _qrUnlocked = false;
   double _pullOffset = 0;
-  static const double _pullMax = 140;
-  static const double _pullTrigger = 100;
+  static const double _pullMax = 400;
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
@@ -47,11 +47,23 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
     {'country': 'Australia', 'code': 'au', 'type': 'ETA', 'expiry': '2025-08-10'},
   ];
 
+  late AnimationController _revealController;
+  late Animation<double> _revealAnimation;
+
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
     _fadeAnimation = CurvedAnimation(parent: _animationController, curve: Curves.easeInOut);
+    
+    _revealController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _revealAnimation = CurvedAnimation(parent: _revealController, curve: Curves.easeOutBack);
+    _revealController.addListener(() {
+      setState(() {
+        _pullOffset = _revealAnimation.value * _pullMax;
+      });
+    });
+
     _loadIdData();
     _startQrRefreshTimer();
   }
@@ -59,6 +71,7 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _animationController.dispose();
+    _revealController.dispose();
     _qrRefreshTimer?.cancel();
     super.dispose();
   }
@@ -129,15 +142,19 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
     return '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
   }
 
-  Future<bool> _handlePullToVerify() async {
-    if (_isTravelMode || _qrUnlocked) return _qrUnlocked;
-    final verified = await _showBiometricSheet();
-    if (verified && mounted) {
-      setState(() {
-        _qrUnlocked = true;
-      });
+  Future<void> _toggleQrReveal() async {
+    if (_qrUnlocked) {
+      // If already unlocked/revealed, hide it
+      _revealController.reverse();
+      setState(() { _qrUnlocked = false; });
+    } else {
+      // If hidden, verify first
+      final verified = await _showBiometricSheet();
+      if (verified && mounted) {
+        setState(() { _qrUnlocked = true; });
+        _revealController.forward();
+      }
     }
-    return verified;
   }
 
   Future<bool> _showBiometricSheet() async {
@@ -223,51 +240,7 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
     try { return Platform.operatingSystem.toUpperCase(); } catch (e) { return 'Device'; }
   }
 
-  bool _handleScrollNotification(ScrollNotification notification) {
-    if (_isTravelMode) return false;
 
-    if (notification is OverscrollNotification && notification.metrics.axis == Axis.vertical) {
-      final delta = notification.overscroll;
-      if (delta > 0) {
-        setState(() {
-          _pullOffset = (_pullOffset + delta * 0.9).clamp(0, _pullMax);
-        });
-      }
-    }
-
-    if (notification is ScrollEndNotification ||
-        (notification is ScrollUpdateNotification &&
-            notification.metrics.pixels <= 0 &&
-            notification.dragDetails == null)) {
-      if (_pullOffset >= _pullTrigger) {
-        _onPulledToThreshold();
-      } else if (_pullOffset > 0) {
-        _resetPullOffset();
-      }
-    }
-
-    return false;
-  }
-
-  Future<void> _onPulledToThreshold() async {
-    final verified = await _handlePullToVerify();
-    if (mounted) {
-      setState(() {
-        _pullOffset = 0;
-        if (!verified) {
-          _qrUnlocked = false;
-        }
-      });
-    }
-  }
-
-  void _resetPullOffset() {
-    if (mounted) {
-      setState(() {
-        _pullOffset = 0;
-      });
-    }
-  }
 
   void _showFullscreen(String type) {
     final isIc = type == 'ic';
@@ -334,51 +307,57 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: Stack(
+          fit: StackFit.expand,
           children: [
             // Revealed QR panel behind the main content when pulling down
-            Positioned(
-              left: 20,
-              right: 20,
-              top: 16,
-              child: IgnorePointer(
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 120),
-                  opacity: (_pullOffset / _pullMax).clamp(0, 1),
-                  child: Transform.scale(
-                    scale: 0.98 + 0.02 * (_pullOffset / _pullMax).clamp(0, 1),
-                    child: _qrUnlocked ? _buildQrSection('ic') : _buildLockedQrNotice(),
+            if (!_isTravelMode)
+              Positioned(
+                left: 20,
+                right: 20,
+                top: 16,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 120),
+                    opacity: (_pullOffset / _pullMax).clamp(0, 1),
+                    child: Transform.scale(
+                      scale: 0.98 + 0.02 * (_pullOffset / _pullMax).clamp(0, 1),
+                      child: _qrUnlocked ? _buildQrSection('ic') : _buildLockedQrNotice(),
+                    ),
                   ),
+                ),
+              ),
+            // Main content without drag gesture
+            SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: Transform.translate(
+                offset: Offset(0, _pullOffset),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                      Text(
+                        _isTravelMode ? 'Travel Mode' : 'Digital ID',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      _buildModeToggle(),
+                    ]),
+                    const SizedBox(height: 24),
+                    AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: _isTravelMode ? _buildTravelMode() : _buildIdMode()),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
             ),
-            NotificationListener<ScrollNotification>(
-              onNotification: _handleScrollNotification,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                child: Transform.translate(
-                  offset: Offset(0, _pullOffset * 0.5),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        Text(
-                          _isTravelMode ? 'Travel Mode' : 'Digital ID',
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        _buildModeToggle(),
-                      ]),
-                      const SizedBox(height: 24),
-                      AnimatedSwitcher(duration: const Duration(milliseconds: 300), child: _isTravelMode ? _buildTravelMode() : _buildIdMode()),
-                      const SizedBox(height: 80),
-                    ],
-                  ),
-                ),
-              ),
+            // Emergency Button
+            Positioned(
+              right: 20,
+              bottom: 80,
+              child: _buildEmergencyButton(),
             ),
             Positioned(left: 0, right: 0, bottom: 0, child: _buildWatermark()),
           ],
@@ -401,10 +380,15 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
 
   Widget _buildToggleButton(String label, IconData icon, bool isActive) {
     return GestureDetector(
-      onTap: () => setState(() {
-        _isTravelMode = label == 'Travel';
-        _qrUnlocked = false;
-      }),
+      onTap: () {
+        setState(() {
+          _isTravelMode = label == 'Travel';
+          _qrUnlocked = false;
+        });
+        if (_revealController.value > 0) {
+          _revealController.reverse();
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -428,21 +412,25 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
       const SizedBox(height: 12),
       Text('Tap card to view fullscreen', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
       const SizedBox(height: 24),
-      _buildPullHint(),
+      const SizedBox(height: 24),
+      _buildRevealButton(),
       const SizedBox(height: 32),
       _buildDetailsSection(),
     ]);
   }
 
   Widget _buildTravelMode() {
-    return Column(key: const ValueKey('travel_mode'), crossAxisAlignment: CrossAxisAlignment.start, children: [
+    return Column(key: const ValueKey('travel_mode'), crossAxisAlignment: CrossAxisAlignment.center, children: [
       GestureDetector(onTap: () => _showFullscreen('passport'), child: _buildPassportCard()),
       const SizedBox(height: 12),
       Text('Tap card to view fullscreen', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
       const SizedBox(height: 24),
-      _buildQrSection('passport'),
+      Center(child: _buildQrSection('passport')),
       const SizedBox(height: 32),
-      const Text('Available Visas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: const Text('Available Visas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white)),
+      ),
       const SizedBox(height: 16),
       ..._visas.map((visa) => _buildVisaCard(visa)),
     ]);
@@ -674,7 +662,7 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Pull down to verify',
+                  'Verify to reveal',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.95),
                     fontSize: 15,
@@ -683,7 +671,7 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Swipe down to trigger biometric verification before showing your MyKad QR.',
+                  'Tap the button below to verify and view your MyKad QR.',
                   style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13, height: 1.3),
                 ),
               ],
@@ -694,24 +682,28 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildPullHint() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.swipe_down_alt, color: Colors.white, size: 18),
-          const SizedBox(width: 8),
-          Text(
-            'Pull down to verify and reveal QR',
-            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-        ],
+  Widget _buildRevealButton() {
+    return GestureDetector(
+      onTap: _toggleQrReveal,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(_qrUnlocked ? Icons.keyboard_arrow_up : Icons.qr_code_scanner, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              _qrUnlocked ? 'Tap to Close QR' : 'Tap to Verify & View QR',
+              style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -746,8 +738,169 @@ class _IdPageState extends State<IdPage> with SingleTickerProviderStateMixin {
   Widget _buildWatermark() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [const Color(0xFFF5F5F7).withOpacity(0), const Color(0xFFF5F5F7)])),
-      child: SafeArea(top: false, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey[200]!)), child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_user, size: 14, color: Colors.grey[500]), const SizedBox(width: 8), Text('${_getCurrentDateTime()} • ${_getDeviceInfo()}', style: TextStyle(color: Colors.grey[500], fontSize: 11))]))),
+      decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black.withOpacity(0.3)])),
+      child: SafeArea(top: false, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white.withOpacity(0.3))), child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_user, size: 14, color: Colors.grey[600]), const SizedBox(width: 8), Text('${_getCurrentDateTime()} • ${_getDeviceInfo()}', style: TextStyle(color: Colors.grey[600], fontSize: 11))]))),
+    );
+  }
+
+  Widget _buildEmergencyButton() {
+    return GestureDetector(
+      onTap: _showEmergencyOptions,
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFFF4444), Color(0xFFCC0000)],
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.red.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.emergency,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  void _showEmergencyOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 42,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Icon(Icons.emergency, size: 48, color: Colors.red),
+            const SizedBox(height: 12),
+            Text(
+              'Emergency Services',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[900],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _isTravelMode 
+                ? 'Quick access to emergency contacts while traveling'
+                : 'Quick access to emergency services in Malaysia',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            _buildEmergencyTile(
+              icon: Icons.local_police,
+              title: 'Police',
+              subtitle: _isTravelMode ? 'Local Emergency' : '999',
+              color: Colors.blue,
+            ),
+            _buildEmergencyTile(
+              icon: Icons.local_hospital,
+              title: 'Ambulance',
+              subtitle: _isTravelMode ? 'Medical Emergency' : '999',
+              color: Colors.red,
+            ),
+            _buildEmergencyTile(
+              icon: Icons.local_fire_department,
+              title: 'Fire Department',
+              subtitle: _isTravelMode ? 'Fire Emergency' : '994',
+              color: Colors.orange,
+            ),
+            if (_isTravelMode)
+              _buildEmergencyTile(
+                icon: Icons.account_balance,
+                title: 'Embassy',
+                subtitle: 'Malaysian Embassy',
+                color: Colors.indigo,
+              ),
+            const SizedBox(height: 16),
+            SafeArea(
+              top: false,
+              child: SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey[300]!),
+                    ),
+                  ),
+                  child: Text('Cancel', style: TextStyle(color: Colors.grey[700])),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmergencyTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[900])),
+        subtitle: Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+        trailing: Icon(Icons.phone, color: color),
+        onTap: () {
+          Navigator.pop(context);
+          // In a real app, this would trigger a phone call
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Calling $title...'),
+              backgroundColor: color,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -823,6 +976,7 @@ class _FullscreenViewState extends State<_FullscreenView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Stack(
+        fit: StackFit.expand,
         children: [
           // Main Content
           Column(
@@ -909,7 +1063,6 @@ class _WatermarkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
-    final paint = Paint()..color = Colors.grey.withOpacity(0.06);
     
     canvas.save();
     canvas.rotate(-0.3);
