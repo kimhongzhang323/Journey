@@ -4,6 +4,8 @@ import 'id_page.dart';
 import 'services_page.dart';
 import 'chat_page.dart';
 import 'onboarding_page.dart';
+import 'landing_page.dart';
+import 'splash_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,27 +40,63 @@ class AppWrapper extends StatefulWidget {
 
 class _AppWrapperState extends State<AppWrapper> {
   bool _isLoading = true;
+  bool _showLanding = true;
   bool _showOnboarding = true;
+  bool _showSplash = false;
 
   @override
   void initState() {
     super.initState();
-    _checkOnboardingStatus();
+    _checkAppStatus();
   }
 
-  Future<void> _checkOnboardingStatus() async {
+  Future<void> _checkAppStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final completed = prefs.getBool('onboarding_completed') ?? false;
+    final landingSeen = prefs.getBool('landing_page_seen') ?? false;
+    final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+    final shouldShowSplash = landingSeen && onboardingCompleted;
+
+    if (!mounted) return;
     setState(() {
-      _showOnboarding = !completed;
+      _showLanding = !landingSeen;
+      _showOnboarding = landingSeen && !onboardingCompleted;
+      _showSplash = shouldShowSplash;
       _isLoading = false;
+    });
+
+    if (shouldShowSplash) {
+      _startSplashTimer();
+    }
+  }
+
+  void _startSplashTimer() {
+    Future.delayed(const Duration(milliseconds: 1600), () {
+      if (!mounted) return;
+      setState(() {
+        _showSplash = false;
+      });
+    });
+  }
+
+  Future<void> _completeLanding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('landing_page_seen', true);
+    if (!mounted) return;
+    setState(() {
+      _showLanding = false;
+      _showOnboarding = true;
     });
   }
 
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_completed', true);
-    setState(() => _showOnboarding = false);
+    if (!mounted) return;
+    setState(() {
+      _showOnboarding = false;
+      _showSplash = true;
+    });
+    _startSplashTimer();
   }
 
   @override
@@ -70,8 +108,16 @@ class _AppWrapperState extends State<AppWrapper> {
       );
     }
 
+    if (_showLanding) {
+      return LandingPage(onGetStarted: _completeLanding);
+    }
+
     if (_showOnboarding) {
       return OnboardingPage(onComplete: _completeOnboarding);
+    }
+
+    if (_showSplash) {
+      return const SplashPage();
     }
 
     return const MainLayout();

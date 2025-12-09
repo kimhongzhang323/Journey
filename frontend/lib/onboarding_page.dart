@@ -10,9 +10,13 @@ class OnboardingPage extends StatefulWidget {
   State<OnboardingPage> createState() => _OnboardingPageState();
 }
 
-class _OnboardingPageState extends State<OnboardingPage> {
+class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProviderStateMixin {
   int _currentStep = 0;
   bool _isProcessing = false;
+  late AnimationController _logoController;
+  late Animation<double> _logoScaleAnimation;
+  late Animation<double> _logoOpacityAnimation;
+  bool _showLogoAnimation = true;
   
   // IC Data (editable)
   Map<String, String> _icData = {};
@@ -33,6 +37,50 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final _nameController = TextEditingController();
   final _icNumberController = TextEditingController();
   final _addressController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _logoController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _logoScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
+      ),
+    );
+    
+    _logoOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeIn),
+      ),
+    );
+    
+    _startLogoAnimation();
+  }
+
+  void _startLogoAnimation() async {
+    await _logoController.forward();
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      setState(() {
+        _showLogoAnimation = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _logoController.dispose();
+    _nameController.dispose();
+    _icNumberController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
 
   void _simulateIcScan() async {
     setState(() => _isProcessing = true);
@@ -141,6 +189,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showLogoAnimation) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _logoController,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _logoOpacityAnimation.value,
+                  child: Transform.scale(
+                    scale: _logoScaleAnimation.value,
+                    child: _buildAnimatedLogo(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -156,6 +226,48 @@ class _OnboardingPageState extends State<OnboardingPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAnimatedLogo() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 140,
+          height: 140,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(35),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(35),
+            child: Image.asset(
+              'assets/images/IC.jpg',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.wallet, color: Colors.white, size: 70);
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Journey',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
     );
   }
 

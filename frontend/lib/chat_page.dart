@@ -6,6 +6,7 @@ import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
+import 'widgets/glassy_button.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -58,6 +59,7 @@ class _ChatPageState extends State<ChatPage> {
   bool _isLoading = false;
   bool _isVoiceMode = false;
   bool _isSpeaking = false;
+  bool _showSuggestions = true;
   int _mapCounter = 0;
   String? _googleMapsApiKey;
   
@@ -221,7 +223,11 @@ class _ChatPageState extends State<ChatPage> {
     final text = overrideMessage ?? _controller.text.trim();
     if (text.isEmpty) return;
 
-    setState(() { _messages.add(ChatMessage(content: text, isUser: true)); _isLoading = true; });
+    setState(() {
+      _messages.add(ChatMessage(content: text, isUser: true));
+      _isLoading = true;
+      _showSuggestions = false;
+    });
     _controller.clear();
     _scrollToBottom();
 
@@ -292,23 +298,42 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final hasUserMessages = _messages.any((m) => m.isUser);
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text('Journey', style: TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold)),
-        actions: [
-          if (_isSpeaking) Container(margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(20)), child: const Row(children: [Icon(Icons.volume_up, color: Colors.white, size: 16), SizedBox(width: 4), Text('Speaking', style: TextStyle(color: Colors.white, fontSize: 12))])),
-          GestureDetector(onTap: _showLanguageSelector, child: Container(margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(20)), child: Text(_languages[_selectedLanguage]!, style: const TextStyle(fontSize: 14)))),
-          GestureDetector(onTap: () { setState(() => _isVoiceMode = !_isVoiceMode); _showSnackBar(_isVoiceMode ? '🎤 Voice ON' : '🔇 Voice OFF'); }, child: Container(margin: const EdgeInsets.only(right: 16), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: _isVoiceMode ? Colors.black : Colors.grey[100], borderRadius: BorderRadius.circular(20)), child: Icon(_isVoiceMode ? Icons.mic : Icons.mic_none, color: _isVoiceMode ? Colors.white : Colors.grey[600], size: 20))),
-        ],
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0E4CFF),
+              Color(0xFF4C3DEB),
+              Color(0xFF0EA6C1),
+              Color(0xFF9B59B6),
+            ],
+            stops: [0.05, 0.35, 0.65, 0.95],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeroHeader(),
+              if (_showSuggestions && !hasUserMessages) _buildSuggestionChips(),
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) => _buildMessage(_messages[index]),
+                ),
+              ),
+              if (_isLoading) _buildTyping(),
+              _buildInput(),
+            ],
+          ),
+        ),
       ),
-      body: Column(children: [
-        Expanded(child: ListView.builder(controller: _scrollController, padding: const EdgeInsets.all(16), itemCount: _messages.length, itemBuilder: (context, index) => _buildMessage(_messages[index]))),
-        if (_isLoading) _buildTyping(),
-        _buildInput(),
-      ]),
     );
   }
 
@@ -318,38 +343,101 @@ class _ChatPageState extends State<ChatPage> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.9),
-        child: Column(crossAxisAlignment: msg.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start, children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: msg.isUser ? Colors.black : Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(msg.content, style: TextStyle(color: msg.isUser ? Colors.white : Colors.black87, fontSize: 16, height: 1.5)),
-              if (msg.checklist != null) ...[const SizedBox(height: 12), ...msg.checklist!.map((item) => _buildCheckItem(item))],
-              // Embedded Map
-              if (msg.locations != null && msg.mapLat != null && msg.mapLng != null) ...[
-                const SizedBox(height: 12),
-                _buildEmbeddedMap(msg.mapLat!, msg.mapLng!, msg.service ?? 'JPN'),
-              ],
-              if (msg.locations != null) ...[const SizedBox(height: 12), ...msg.locations!.take(3).map((loc) => _buildLocationCard(loc))],
-              if (msg.url != null) ...[
-                const SizedBox(height: 12),
-                GestureDetector(
-                  onTap: () => _openUrl(msg.url!),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(12)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.open_in_new, color: Colors.white, size: 18),
-                      const SizedBox(width: 8),
-                      Text(msg.label ?? 'Open Link', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    ]),
+        child: Column(
+          crossAxisAlignment: msg.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: msg.isUser ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withOpacity(0.16)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    msg.content,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.95),
+                      fontSize: 16,
+                      height: 1.5,
+                      fontWeight: msg.isUser ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  if (msg.checklist != null) ...[
+                    const SizedBox(height: 12),
+                    ...msg.checklist!.map((item) => _buildCheckItem(item)),
+                  ],
+                  if (msg.locations != null && msg.mapLat != null && msg.mapLng != null) ...[
+                    const SizedBox(height: 12),
+                    _buildEmbeddedMap(msg.mapLat!, msg.mapLng!, msg.service ?? 'JPN'),
+                  ],
+                  if (msg.locations != null) ...[
+                    const SizedBox(height: 12),
+                    ...msg.locations!.take(3).map((loc) => _buildLocationCard(loc)),
+                  ],
+                  if (msg.url != null) ...[
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () => _openUrl(msg.url!),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.16),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.open_in_new, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              msg.label ?? 'Open Link',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (msg.quickActions != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: msg.quickActions!
+                      .map(
+                        (a) => GestureDetector(
+                          onTap: () => _sendMessage(a.replaceAll(RegExp(r'[^\w\s\u4e00-\u9fff\u0B80-\u0BFF]'), '').trim()),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.25)),
+                            ),
+                            child: Text(a, style: const TextStyle(fontSize: 13, color: Colors.white)),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
-              ],
-            ]),
-          ),
-          if (msg.quickActions != null) Padding(padding: const EdgeInsets.only(top: 10), child: Wrap(spacing: 8, runSpacing: 8, children: msg.quickActions!.map((a) => GestureDetector(onTap: () => _sendMessage(a.replaceAll(RegExp(r'[^\w\s\u4e00-\u9fff\u0B80-\u0BFF]'), '').trim()), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey[300]!)), child: Text(a, style: const TextStyle(fontSize: 13))))).toList())),
-        ]),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -394,29 +482,244 @@ class _ChatPageState extends State<ChatPage> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: item.isChecked ? Colors.green.withOpacity(0.1) : Colors.grey[50], borderRadius: BorderRadius.circular(12)),
-        child: Row(children: [
-          Container(width: 22, height: 22, decoration: BoxDecoration(color: item.isChecked ? Colors.green : Colors.white, borderRadius: BorderRadius.circular(6), border: Border.all(color: item.isChecked ? Colors.green : Colors.grey[300]!, width: 2)), child: item.isChecked ? const Icon(Icons.check, size: 14, color: Colors.white) : null),
-          const SizedBox(width: 12),
-          Expanded(child: Text(item.title, style: TextStyle(color: item.isChecked ? Colors.grey : Colors.black87, decoration: item.isChecked ? TextDecoration.lineThrough : null))),
-        ]),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: item.isChecked ? Colors.green : Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: item.isChecked ? Colors.green : Colors.white.withOpacity(0.3), width: 2),
+              ),
+              child: item.isChecked ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item.title,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(item.isChecked ? 0.5 : 0.95),
+                  decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTyping() {
-    return Container(margin: const EdgeInsets.only(left: 16, bottom: 12), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Row(mainAxisSize: MainAxisSize.min, children: List.generate(3, (_) => Container(margin: const EdgeInsets.symmetric(horizontal: 3), width: 8, height: 8, decoration: BoxDecoration(color: Colors.grey[400], shape: BoxShape.circle)))));
+    return Container(
+      margin: const EdgeInsets.only(left: 16, bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          3,
+          (_) => Container(
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildInput() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
-      child: SafeArea(top: false, child: Row(children: [
-        Expanded(child: Container(padding: const EdgeInsets.symmetric(horizontal: 18), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(24)), child: TextField(controller: _controller, decoration: InputDecoration(hintText: _selectedLanguage == 'malay' ? 'Taip mesej...' : _selectedLanguage == 'chinese' ? '输入信息...' : 'Message...', hintStyle: TextStyle(color: Colors.grey[400]), border: InputBorder.none), onSubmitted: (_) => _sendMessage()))),
-        const SizedBox(width: 10),
-        GestureDetector(onTap: () => _sendMessage(), child: Container(width: 44, height: 44, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle), child: const Icon(Icons.arrow_upward, color: Colors.white))),
-      ])),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 18, offset: const Offset(0, -4)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                ),
+                child: TextField(
+                  controller: _controller,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: _selectedLanguage == 'malay'
+                        ? 'Taip mesej...'
+                        : _selectedLanguage == 'chinese'
+                            ? '输入信息...'
+                            : 'Ask Journey anything...',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                    border: InputBorder.none,
+                  ),
+                  onSubmitted: (_) => _sendMessage(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () {
+                setState(() => _isVoiceMode = !_isVoiceMode);
+                _showSnackBar(_isVoiceMode ? '🎤 Voice ON' : '🔇 Voice OFF');
+              },
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.16),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 14, offset: const Offset(0, 6)),
+                  ],
+                ),
+                child: Icon(_isVoiceMode ? Icons.mic : Icons.mic_none, color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _sendMessage(),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.22),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 14, offset: const Offset(0, 6)),
+                  ],
+                ),
+                child: const Icon(Icons.arrow_upward, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: Colors.white.withOpacity(0.9), size: 20),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Journey AI',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.95),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.8), width: 1),
+                    ),
+                    child: Text(
+                      'beta',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 10),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'How can I help you?',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Colors.white.withOpacity(0.95),
+              shadows: [
+                Shadow(color: Colors.black.withOpacity(0.25), blurRadius: 12),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Ask Journey about government services, payments, identity, and more.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChips() {
+    final suggestions = [
+      '🪪 I lost my IC',
+      '💳 How do I pay tax?',
+      '📄 Renew my passport',
+      '📍 Find nearest JPN',
+      '🏦 Update address',
+      '👶 Register newborn',
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: SizedBox(
+        height: 54,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: suggestions.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final s = suggestions[index];
+            return GlassyButton(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              borderRadius: BorderRadius.circular(14),
+              onPressed: () => _sendMessage(s),
+              child: Text(
+                s,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
