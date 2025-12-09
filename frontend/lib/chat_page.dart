@@ -59,9 +59,7 @@ class _ChatPageState extends State<ChatPage> {
   bool _isVoiceMode = false;
   bool _isSpeaking = false;
   int _mapCounter = 0;
-  
-  // Google Maps API Key for embed
-  static const String _googleMapsApiKey = 'AIzaSyCeKrOMBSpSI9wnnzkqPsvASQT27b6tzDs';
+  String? _googleMapsApiKey;
   
   String _selectedLanguage = 'english';
   final Map<String, String> _languages = {
@@ -77,6 +75,19 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _addWelcomeMessage();
+    _fetchApiKey();
+  }
+
+  Future<void> _fetchApiKey() async {
+    try {
+      final response = await http.get(Uri.parse('$_backendUrl/config'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() => _googleMapsApiKey = data['google_maps_api_key']);
+      }
+    } catch (e) {
+      // Use fallback - maps won't work without key
+    }
   }
 
   void _addWelcomeMessage() {

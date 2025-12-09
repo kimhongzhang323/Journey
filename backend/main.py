@@ -331,6 +331,13 @@ def get_services():
     """Get all government services info"""
     return GOVERNMENT_SERVICES
 
+@app.get("/config")
+def get_config():
+    """Get frontend config including API keys for embed"""
+    return {
+        "google_maps_api_key": GOOGLE_MAPS_API_KEY,
+    }
+
 @app.post("/find-office")
 async def find_nearby_office(request: LocationRequest):
     """Find nearby government office using Google Maps"""
