@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'jpn_page.dart';
 import 'main.dart';
+import 'print_ic_page.dart';
+import 'jpj_page.dart';
 
 class ServicesPage extends StatefulWidget {
   const ServicesPage({super.key});
@@ -144,6 +147,94 @@ class _ServicesPageState extends State<ServicesPage> {
                   ],
                 ),
               ),
+              
+              // Balance Card
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue[900]!, Colors.blue[700]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Touch \'n Go eWallet',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Icon(Icons.nfc, color: Colors.white.withOpacity(0.8), size: 20),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'RM 154.50',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.add, color: Colors.white, size: 16),
+                              SizedBox(width: 4),
+                              Text(
+                                'Reload',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Active',
+                          style: TextStyle(
+                            color: Colors.greenAccent[100],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 12),
 
               // Quick Actions
               Container(
@@ -309,11 +400,17 @@ class _ServicesPageState extends State<ServicesPage> {
                         _buildServiceIcon(
                             Icons.flight, 'Immigration', Colors.indigo),
                         _buildServiceIcon(
-                            Icons.directions_car, 'JPJ', Colors.orange),
+                            Icons.directions_car, 'JPJ', Colors.orange, onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => const JPJPage()));
+                            }),
                         _buildServiceIcon(Icons.receipt, 'LHDN', Colors.green),
                         _buildServiceIcon(Icons.savings, 'KWSP', Colors.teal),
                         _buildServiceIcon(
                             Icons.security, 'PERKESO', Colors.cyan),
+                        _buildServiceIcon(
+                            Icons.print, 'Print/Scan', Colors.purple, onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (context) => const PrintIcPage()));
+                            }),
                         _buildServiceIcon(
                             Icons.local_hospital, 'MOH', Colors.red),
                         _buildServiceIcon(

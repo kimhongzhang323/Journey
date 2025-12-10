@@ -36,6 +36,10 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
   bool _fingerprintDone = false;
   bool _faceIdDone = false;
 
+  // Security
+  String? _securityMode; // 'pin', 'full'
+  final _pinController = TextEditingController();
+  
   // Text Controllers for editing
   final _nameController = TextEditingController();
   final _icNumberController = TextEditingController();
@@ -69,6 +73,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
     _nameController.dispose();
     _icNumberController.dispose();
     _addressController.dispose();
+    _pinController.dispose();
     super.dispose();
   }
 
@@ -139,7 +144,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
       _passportScanned = true;
       _hasMismatch = _mismatchFields.isNotEmpty;
       if (!_hasMismatch) {
-        _changeStep(3); // Proceed to biometric
+         _changeStep(3); // Proceed to Security Choice
       }
       // If mismatch, stay on passport step to show warning
     });
@@ -148,7 +153,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
   void _skipPassport() {
     setState(() {
       _passportSkipped = true;
-      _changeStep(3); // Go to biometric
+      _passportSkipped = true;
+      _changeStep(3); // Go to Security Choice
     });
   }
 
@@ -180,7 +186,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
         _faceIdDone = true;
       }
       if (_fingerprintDone && _faceIdDone) {
-        _changeStep(4); // Complete
+        _changeStep(6); // Complete
       }
     });
   }
@@ -254,7 +260,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
 
   Widget _buildProgressBar() {
     return Row(
-      children: List.generate(5, (index) {
+      children: List.generate(7, (index) {
         final isCompleted = index < _currentStep;
         final isCurrent = index == _currentStep;
         return Expanded(
@@ -287,8 +293,10 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
       case 0: return _buildIcScanStep();
       case 1: return _buildIcValidationStep();
       case 2: return _buildPassportStep();
-      case 3: return _buildBiometricStep();
-      case 4: return _buildCompleteStep();
+      case 3: return _buildSecurityChoiceStep();
+      case 4: return _buildPinSetupStep();
+      case 5: return _buildBiometricStep();
+      case 6: return _buildCompleteStep();
       default: return _buildIcScanStep();
     }
   }
@@ -690,6 +698,196 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
     );
   }
 
+  Widget _buildSecurityChoiceStep() {
+    return Column(
+      children: [
+        const Spacer(),
+        Text(
+          'Choose Security',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Select your preferred verification method',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 40),
+        _buildSecurityOption(
+          'PIN + Biometric',
+          'Secure with a 6-digit PIN and one biometric',
+          Icons.pin,
+          () {
+            setState(() {
+              _securityMode = 'pin';
+              _changeStep(4); // Go to PIN setup
+            });
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildSecurityOption(
+          'Full Biometric',
+          'Use Face ID and Fingerprint for max security',
+          Icons.fingerprint,
+          () {
+            setState(() {
+              _securityMode = 'full';
+              _changeStep(5); // Skip PIN, go to Biometric
+            });
+          },
+        ),
+        const Spacer(),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  Widget _buildSecurityOption(String title, String subtitle, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey[300]!),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: Colors.black87, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPinSetupStep() {
+    return Column(
+      children: [
+        const Spacer(),
+        Text(
+          'Set Your PIN',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Create a 6-digit PIN for extra security',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 40),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey[300]!),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: _pinController,
+            keyboardType: TextInputType.number,
+            obscureText: true,
+            maxLength: 6,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 8,
+            ),
+            decoration: const InputDecoration(
+              counterText: '',
+              border: InputBorder.none,
+              hintText: '••••••',
+              hintStyle: TextStyle(color: Colors.black12),
+            ),
+            onChanged: (value) {
+              if (value.length == 6) {
+                FocusScope.of(context).unfocus();
+              }
+              setState(() {});
+            },
+          ),
+        ),
+        const Spacer(),
+        GlassyButton(
+          onPressed: _pinController.text.length == 6 
+              ? () => setState(() => _changeStep(5)) 
+              : null,
+          borderRadius: BorderRadius.circular(16),
+          child: const Text(
+            'Continue',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
   Widget _buildBiometricStep() {
     return Column(
       children: [
@@ -705,7 +903,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
         ),
         const SizedBox(height: 12),
         Text(
-          'Complete both to secure your Digital ID',
+          _securityMode == 'pin' ? 'Biometric Setup' : 'Full Biometric Setup',
           style: TextStyle(
             fontSize: 16,
             color: Colors.grey[600],
@@ -717,9 +915,10 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
         const SizedBox(height: 16),
         _buildBiometricCard(Icons.face, 'Face ID', _faceIdDone, () => _simulateBiometric('face')),
         const Spacer(),
-        if (_fingerprintDone && _faceIdDone)
+        if ((_securityMode == 'full' && _fingerprintDone && _faceIdDone) || 
+            (_securityMode == 'pin' && (_fingerprintDone || _faceIdDone)))
           GlassyButton(
-            onPressed: () => setState(() => _changeStep(4)),
+            onPressed: () => setState(() => _changeStep(6)),
             borderRadius: BorderRadius.circular(16),
             child: const Text(
               'Continue',
