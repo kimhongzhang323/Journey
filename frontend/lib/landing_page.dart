@@ -3,18 +3,21 @@ import 'package:flutter/material.dart';
 import 'widgets/glassy_button.dart';
 
 class LandingPage extends StatefulWidget {
-  final VoidCallback onGetStarted;
-  
-  const LandingPage({super.key, required this.onGetStarted});
+  final VoidCallback onSignUp;
+  final VoidCallback onLogin;
+
+  const LandingPage({super.key, required this.onSignUp, required this.onLogin});
 
   @override
   State<LandingPage> createState() => _LandingPageState();
 }
 
-class _LandingPageState extends State<LandingPage> with SingleTickerProviderStateMixin {
+class _LandingPageState extends State<LandingPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  bool _isScanning = false;
 
   @override
   void initState() {
@@ -70,7 +73,9 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                         const Spacer(),
                         _buildTextStack(),
                         const SizedBox(height: 32),
-                        _buildGetStartedButton(),
+                        _buildSignUpButton(),
+                        const SizedBox(height: 16),
+                        _buildLoginButton(),
                         const Spacer(),
                       ],
                     ),
@@ -141,17 +146,109 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
     );
   }
 
-
-
-  Widget _buildGetStartedButton() {
+  Widget _buildSignUpButton() {
     return GlassyButton(
-      onPressed: widget.onGetStarted,
+      onPressed: widget.onSignUp,
       borderRadius: BorderRadius.circular(16),
       child: const Text(
-        'Get Started',
+        'Sign Up',
         style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
       ),
     );
   }
-}
 
+  Widget _buildLoginButton() {
+    return GestureDetector(
+      onTap: _handleLogin,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black26, width: 1.5),
+        ),
+        child: const Center(
+          child: Text(
+            'Login',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleLogin() async {
+    setState(() => _isScanning = true);
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _buildFaceScanDialog(),
+    );
+
+    setState(() => _isScanning = false);
+  }
+
+  Widget _buildFaceScanDialog() {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.face,
+              size: 80,
+              color: Colors.blue,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Face Recognition',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Scanning your face...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 24),
+            FutureBuilder(
+              future: Future.delayed(const Duration(milliseconds: 2000)),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  Future.microtask(() {
+                    Navigator.of(context).pop();
+                    widget.onLogin();
+                  });
+                  return const Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 48,
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
