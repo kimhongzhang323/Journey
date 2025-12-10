@@ -298,6 +298,18 @@ def create_task(request: TaskCreateRequest):
         raise HTTPException(status_code=400, detail=f"Unknown task type: {request.task_type}")
     
     service = AGENTIC_SERVICES[request.task_type]
+    service = AGENTIC_SERVICES[request.task_type]
+    
+    # Check for existing active task
+    user_id = request.user_id or "default"
+    existing_task = next((t for t in active_tasks.values() 
+                          if t.get("user_id") == user_id and 
+                             t.get("type") == request.task_type and 
+                             t.get("status") == "in_progress"), None)
+    
+    if existing_task:
+        return {"message": f"Continuing existing task: {service['name']}", "task": existing_task}
+
     task_id = str(uuid.uuid4())[:8]
     
     task = {
@@ -336,6 +348,24 @@ def start_task_with_verification(request: TaskCreateRequest):
             "message": "Eligibility check failed",
             "auto_verification": verification,
             "action_required": "Please update your profile to fix the failed checks"
+        }
+
+    # Check for existing active task
+    existing_task = next((t for t in active_tasks.values() 
+                          if t.get("user_id") == user_id and 
+                             t.get("type") == request.task_type and 
+                             t.get("status") == "in_progress"), None)
+    
+    if existing_task:
+        service = AGENTIC_SERVICES[request.task_type]
+        return {
+            "success": True,
+            "message": f"Continuing existing task: {service['name']}",
+            "task": existing_task,
+            "auto_verification": verification,
+            "skipped_step": "Step 1 (Eligibility Check) - Previously passed",
+            "current_step": existing_task.get("steps", [])[1] if len(existing_task.get("steps", [])) > 1 else None,
+            "autofill_data": existing_task.get("user_data", {})
         }
     
     validation = validate_user_for_service(user_id, request.task_type)

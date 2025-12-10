@@ -66,7 +66,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                     child: Column(
                       children: [
                         const SizedBox(height: 36),
-                        _buildTopBar(),
+                        const SizedBox(height: 36),
                         const Spacer(),
                         _buildTextStack(),
                         const SizedBox(height: 32),
@@ -141,45 +141,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildTopBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Icon(Icons.close, color: Colors.black54, size: 26),
-        Row(
-          children: [
-            Icon(Icons.auto_awesome, color: Colors.black87, size: 22),
-            const SizedBox(width: 6),
-            Text(
-              'Journey',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black54, width: 1),
-              ),
-              child: Text(
-                'beta',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 26),
-      ],
-    );
-  }
+
 
   Widget _buildGetStartedButton() {
     return GlassyButton(

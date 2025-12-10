@@ -755,7 +755,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black.withOpacity(0.3)])),
-      child: SafeArea(top: false, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white.withOpacity(0.3))), child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_user, size: 14, color: Colors.grey[600]), const SizedBox(width: 8), Text('${_getCurrentDateTime()} • ${_getDeviceInfo()}', style: TextStyle(color: Colors.grey[600], fontSize: 11))]))),
+      child: SafeArea(top: false, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_user, size: 14, color: Colors.grey[600]), const SizedBox(width: 8), Text('${_getCurrentDateTime()} • ${_getDeviceInfo()}', style: TextStyle(color: Colors.grey[600], fontSize: 11))]))),
     );
   }
 
@@ -780,10 +780,16 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
             ),
           ],
         ),
-        child: const Icon(
-          Icons.emergency,
-          color: Colors.white,
-          size: 28,
+        child: Center(
+          child: Text(
+            'SOS',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              letterSpacing: 1,
+            ),
+          ),
         ),
       ),
     );

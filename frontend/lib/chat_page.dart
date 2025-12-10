@@ -306,6 +306,28 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     if (agenticTaskType != null) {
+      final existingIndex = _activeTasks.indexWhere((t) => t.type == agenticTaskType && t.isActive);
+      
+      if (existingIndex != -1) {
+        final existingTask = _activeTasks[existingIndex];
+        setState(() {
+          _messages.add(ChatMessage(
+            content: "You already have an active ${existingTask.name} task. Click the button below to continue.",
+            isUser: false,
+            type: 'text',
+          ));
+          _isLoading = false;
+        });
+        _scrollToBottom();
+        
+        // Highlight the existing task
+        // We can do this by selecting it after a short delay
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _selectTask(existingTask.id);
+        });
+        return;
+      }
+
       setState(() => _isLoading = false);
       await _startAgenticTask(agenticTaskType);
       return;
