@@ -44,7 +44,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
     'type': 'P',
     'country_code': 'MYS',
     'identity_no': '930216146007',
-    'name': 'MAHATHIR BIN IDRUS',
+    'name': 'Kimmy',
     'dob': '1993-02-16',
     'sex': 'L-M',
     'place_of_birth': 'KUALA LUMPUR',
@@ -53,11 +53,26 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
   };
 
   final List<Map<String, dynamic>> _visas = [
-    {'country': 'Singapore', 'code': 'sg', 'type': 'Visa Free', 'expiry': '2030-12-31'},
-    {'country': 'Japan', 'code': 'jp', 'type': 'Tourist Visa', 'expiry': '2025-03-15'},
-    {'country': 'United States', 'code': 'us', 'type': 'B1/B2 Visa', 'expiry': '2025-01-20'},
-    {'country': 'United Kingdom', 'code': 'gb', 'type': 'Tourist Visa', 'expiry': '2026-06-30'},
-    {'country': 'Australia', 'code': 'au', 'type': 'ETA', 'expiry': '2025-08-10'},
+    {
+      'country': 'Singapore', 'code': 'sg', 'type': 'Visa Free', 'expiry': '2030-12-31',
+      'approved_date': '2023-01-01', 'authority': 'ICA Singapore', 'ref_no': 'SG-2384-9982', 'conditions': 'Social Visit only. Max 30 days per entry.'
+    },
+    {
+      'country': 'Japan', 'code': 'jp', 'type': 'Tourist Visa', 'expiry': '2025-03-15',
+      'approved_date': '2020-03-15', 'authority': 'Embassy of Japan in Malaysia', 'ref_no': 'JP-MY-88371', 'conditions': 'Single Entry. Tourism purposes only.'
+    },
+    {
+      'country': 'United States', 'code': 'us', 'type': 'B1/B2 Visa', 'expiry': '2025-01-20',
+      'approved_date': '2015-01-20', 'authority': 'US Dept of State', 'ref_no': 'USA-9928-112', 'conditions': 'Business & Tourism. Multiple Entry.'
+    },
+    {
+      'country': 'United Kingdom', 'code': 'gb', 'type': 'Tourist Visa', 'expiry': '2026-06-30',
+      'approved_date': '2021-06-30', 'authority': 'UK Visas & Immigration', 'ref_no': 'UK-VI-33291', 'conditions': 'Standard Visitor. No public funds.'
+    },
+    {
+      'country': 'Australia', 'code': 'au', 'type': 'ETA', 'expiry': '2025-08-10',
+      'approved_date': '2024-08-10', 'authority': 'Australian Dept of Home Affairs', 'ref_no': 'AU-ETA-8821', 'conditions': 'Electronic Travel Authority. 3 months stay.'
+    },
   ];
 
   late AnimationController _revealController;
@@ -109,9 +124,19 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
   String _getQrData(String type) {
     if (type == 'ic') {
       return 'did:my:${_idData?['id_number'] ?? ''}:$_qrTimestamp:verify';
+    } else if (type == 'driving') {
+      return 'did:driving:my:${_idData?['id_number'] ?? ''}:$_qrTimestamp:verify';
+    } else if (type == 'immigration') {
+      return 'autogate:my:${_passportData['passport_number']}:$_qrTimestamp:biometrics';
     } else {
       return 'passport:my:${_passportData['passport_number']}:$_qrTimestamp:verify';
     }
+  }
+
+  String get _currentQrType {
+    if (_selectedCardTab == 'Driving Licence') return 'driving';
+    if (_selectedCardTab == 'Passport') return 'passport';
+    return 'ic';
   }
 
   Future<void> _loadIdData() async {
@@ -124,10 +149,53 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
     try {
       final freshData = await _apiService.getDigitalId();
       await prefs.setString('digital_id_data', jsonEncode(freshData));
-      setState(() { _idData = freshData; _isLoading = false; });
-      if (!_animationController.isCompleted) _animationController.forward();
+      if (mounted) {
+        setState(() {
+          _idData = freshData;
+          _idData!['name'] = 'Kimmy';
+          _isLoading = false;
+        });
+        if (!_animationController.isCompleted) _animationController.forward();
+      }
     } catch (e) {
       if (_idData == null) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _authenticateAndReveal(String type) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.face, size: 50, color: Colors.blue),
+              SizedBox(height: 16),
+              Text('Verifying Identity...', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              SizedBox(height: 16),
+              CircularProgressIndicator(strokeWidth: 2),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    if (type == 'passport') {
+      _showFullscreen('passport');
+    } else if (type == 'immigration') {
+      _showImmigrationQr();
+    } else {
+      if (!_qrUnlocked) _toggleQrReveal();
     }
   }
 
@@ -346,6 +414,20 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                       const SizedBox(height: 24),
                       _buildDetailsSection(),
                     ],
+                    if (!_isTravelMode && _selectedCardTab == 'Passport') ...[
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(child: _buildQrShortcutButton('Passport QR', Icons.qr_code, () => _authenticateAndReveal('passport'))),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildQrShortcutButton('Immigration', Icons.airplane_ticket, () => _authenticateAndReveal('immigration'))),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      const Text('Available Visas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black)),
+                      const SizedBox(height: 16),
+                      ..._visas.map((visa) => _buildVisaCard(visa)),
+                    ],
                   ],
                 ),
               ),
@@ -362,7 +444,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                         opacity: (_pullOffset / _pullMax).clamp(0, 1),
                         child: Transform.scale(
                           scale: 0.98 + 0.02 * (_pullOffset / _pullMax).clamp(0, 1),
-                          child: _buildQrSection('ic', onClose: _toggleQrReveal),
+                          child: _buildQrSection(_currentQrType, onClose: _toggleQrReveal),
                         ),
                       )
                     : IgnorePointer(
@@ -400,17 +482,17 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
               'Welcome back,',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              _idData?['name'] ?? 'Andrew Tay Guo Qiang',
+              'Kimmy',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Colors.black,
               ),
             ),
           ],
@@ -419,13 +501,20 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withOpacity(0.25)),
+            border: Border.all(color: Colors.grey[200]!),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Icon(
             Icons.settings,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.grey[800],
             size: 22,
           ),
         ),
@@ -442,7 +531,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Colors.black,
           ),
         ),
         const SizedBox(height: 16),
@@ -480,7 +569,8 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 16),
         // Reveal QR button shown only for NRIC
-        if (_selectedCardTab == 'NRIC') _buildRevealButton(),
+        // Reveal QR button shown for all tabs if not in Travel Mode
+        if (!_isTravelMode) _buildRevealButton(),
       ],
     );
   }
@@ -502,16 +592,23 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.red[500] : Colors.white.withOpacity(0.15),
+          color: isSelected ? Colors.red[500] : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.red[500]! : Colors.white.withOpacity(0.25),
+            color: isSelected ? Colors.red[500]! : Colors.grey[300]!,
           ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: Colors.red.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ] : [],
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.white.withOpacity(0.9),
+            color: isSelected ? Colors.white : Colors.grey[800],
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           ),
@@ -696,11 +793,11 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
           padding: const EdgeInsets.all(_cardPadding),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: Colors.white.withOpacity(0.12),
-            border: Border.all(color: Colors.white.withOpacity(0.35)),
+            color: Colors.white,
+            border: Border.all(color: Colors.grey[200]!),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withOpacity(0.08),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -729,7 +826,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                   Text(
                     'DRIVING LICENCE',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.94),
+                      color: Colors.grey[800],
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                       letterSpacing: 1.4,
@@ -749,7 +846,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                         Text(
                           'LICENCE NO.',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.82),
+                            color: Colors.grey[600],
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.5,
@@ -759,7 +856,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                         Text(
                           maskedLicence,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.2,
@@ -772,7 +869,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                             Text(
                               'CLASS: ',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.82),
+                                color: Colors.grey[600],
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.5,
@@ -781,7 +878,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                             Text(
                               _idData?['licence_class'] ?? 'D',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.95),
+                                color: Colors.black,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.6,
@@ -796,7 +893,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                             Text(
                               'VALID UNTIL: ',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.82),
+                                color: Colors.grey[600],
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.5,
@@ -805,7 +902,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                             Text(
                               _idData?['licence_expiry'] ?? '2030-12-31',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Colors.black,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.6,
@@ -821,13 +918,13 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.19),
+                      color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.badge,
                       size: 30,
-                      color: Colors.white,
+                      color: Colors.grey[400],
                     ),
                   ),
                 ],
@@ -883,11 +980,11 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
           padding: const EdgeInsets.all(_cardPadding),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: Colors.white.withOpacity(0.12),
-            border: Border.all(color: Colors.white.withOpacity(0.35)),
+            color: Colors.white,
+            border: Border.all(color: Colors.grey[200]!),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withOpacity(0.08),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -902,7 +999,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                   Text(
                     'PASSPORT / PASSPORT',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.grey[800],
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
@@ -918,7 +1015,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                     child: Text(
                       'Type $type',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.grey[800],
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -971,7 +1068,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.78),
+            color: Colors.grey[600],
             fontSize: 11,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
@@ -981,7 +1078,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
         Text(
           value,
           style: TextStyle(
-            color: color ?? Colors.white,
+            color: color ?? Colors.black,
             fontSize: emphasize ? 14 : 13,
             fontWeight: bold || emphasize ? FontWeight.w800 : FontWeight.w700,
             letterSpacing: emphasize ? 0.8 : 0.4,
@@ -1000,7 +1097,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Colors.black,
           ),
         ),
         const SizedBox(height: 16),
@@ -1024,9 +1121,9 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.25)),
+              border: Border.all(color: Colors.grey[300]!),
             ),
             child: Row(
               children: [
@@ -1034,12 +1131,12 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.work_outline,
-                    color: Colors.white,
+                    color: Colors.grey[800],
                     size: 20,
                   ),
                 ),
@@ -1048,7 +1145,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.grey[900],
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1143,18 +1240,18 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
           padding: const EdgeInsets.all(_cardPadding),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: Colors.white.withOpacity(0.10),
-            border: Border.all(color: Colors.white.withOpacity(0.28)),
+            color: Colors.white,
+            border: Border.all(color: Colors.grey[200]!),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withOpacity(0.22),
-                Colors.white.withOpacity(0.06),
+                Colors.white,
+                Colors.grey[50]!,
               ],
             ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 18, offset: const Offset(0, 8)),
+              BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 18, offset: const Offset(0, 8)),
             ],
           ),
           child: Column(
@@ -1172,14 +1269,14 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                           width: 32,
                           height: 22,
                           fit: BoxFit.cover,
-                          errorBuilder: (c, e, s) => Container(width: 32, height: 22, color: Colors.white.withOpacity(0.2)),
+                          errorBuilder: (c, e, s) => Container(width: 32, height: 22, color: Colors.grey[300]),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'MALAYSIA',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.95),
+                          color: Colors.grey[900],
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.2,
@@ -1190,8 +1287,9 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.green[50],
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.green[100]!),
                     ),
                     child: Row(
                       children: const [
@@ -1199,7 +1297,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                         SizedBox(width: 6),
                         Text(
                           'VERIFIED',
-                          style: TextStyle(color: Colors.black87, fontSize: 11, fontWeight: FontWeight.w700),
+                          style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -1210,7 +1308,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
               Text(
                 'MALAYSIA',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.grey[900],
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,
@@ -1220,7 +1318,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
               Text(
                 'NATIONAL DIGITAL IDENTITY CARD',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.grey[600],
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1229,7 +1327,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
               Text(
                 _idData!['name'] ?? 'Name',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Colors.black,
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
@@ -1237,13 +1335,13 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
               const SizedBox(height: 8),
               Text(
                 'NRIC number',
-                style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(color: Colors.grey[500], fontSize: 12, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
               Text(
                 _idData!['id_number'] ?? 'ID',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.black,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.2,
@@ -1281,16 +1379,137 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
   Widget _buildVisaCard(Map<String, dynamic> visa) {
     final expiryColor = _getExpiryColor(visa['expiry']);
     final expiryLabel = _getExpiryLabel(visa['expiry']);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
-      child: Row(children: [
-        ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/countryFlag/${visa['code']}.png', width: 40, height: 28, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(width: 40, height: 28, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.flag, size: 16, color: Colors.grey)))),
-        const SizedBox(width: 16),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(visa['country'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), const SizedBox(height: 2), Text(visa['type'], style: TextStyle(fontSize: 13, color: Colors.grey[500]))])),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: expiryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Text(expiryLabel, style: TextStyle(color: expiryColor, fontSize: 11, fontWeight: FontWeight.w600))), const SizedBox(height: 4), Text(visa['expiry'], style: TextStyle(fontSize: 12, color: Colors.grey[400]))]),
-      ]),
+    return GestureDetector(
+      onTap: () => _showVisaDetails(visa),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]),
+        child: Row(children: [
+          ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.asset('assets/images/countryFlag/${visa['code']}.png', width: 40, height: 28, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(width: 40, height: 28, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.flag, size: 16, color: Colors.grey)))),
+          const SizedBox(width: 16),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(visa['country'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)), const SizedBox(height: 2), Text(visa['type'], style: TextStyle(fontSize: 13, color: Colors.grey[500]))])),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: expiryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Text(expiryLabel, style: TextStyle(color: expiryColor, fontSize: 11, fontWeight: FontWeight.w600))), const SizedBox(height: 4), Text(visa['expiry'], style: TextStyle(fontSize: 12, color: Colors.grey[400]))]),
+        ]),
+      ),
+    );
+  }
+
+  void _showVisaDetails(Map<String, dynamic> visa) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset('assets/images/countryFlag/${visa['code']}.png', width: 48, height: 32, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(width: 48, height: 32, color: Colors.grey[300])),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(visa['country'], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Icon(Icons.check_circle, size: 14, color: Colors.green[600]),
+                          const SizedBox(width: 4),
+                          Text('Active • Verified', style: TextStyle(color: Colors.green[600], fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            _buildDetailRow('Visa Type', visa['type']),
+            _buildDetailRow('Reference No', visa['ref_no'] ?? 'N/A'),
+            _buildDetailRow('Date Issued', visa['approved_date'] ?? 'N/A'),
+            _buildDetailRow('Valid Until', visa['expiry'] ?? 'N/A', valueColor: _getExpiryColor(visa['expiry'])),
+            _buildDetailRow('Issuing Authority', visa['authority'] ?? 'Immigration Authority'),
+            const SizedBox(height: 16),
+            const Text('Conditions', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Text(visa['conditions'] ?? 'Standard visa conditions apply.', style: TextStyle(color: Colors.grey[800], fontSize: 14, height: 1.4)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImmigrationRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.blue[700]),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w500)),
+            Text(value, style: TextStyle(color: Colors.grey[900], fontSize: 13, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQrShortcutButton(String label, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey[200]!),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 28, color: Colors.blue[600]),
+            const SizedBox(height: 8),
+            Text(label, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w600, fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showImmigrationQr() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: _buildQrSection('immigration', onClose: () => Navigator.pop(context)),
+        ),
+      ),
     );
   }
 
@@ -1307,12 +1526,12 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
       child: Column(
         children: [
           Text(
-            type == 'ic' ? 'MyKad Verification' : 'Passport Verification',
+            type == 'ic' ? 'MyKad Verification' : (type == 'immigration' ? 'Autogate Pass' : (type == 'driving' ? 'Licence Verification' : 'Passport Verification')),
             style: TextStyle(color: Colors.grey[700], fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
-            type == 'ic' ? 'Show this to verify your Digital ID' : 'Show this to verify your Passport',
+            type == 'ic' ? 'Show this to verify your Digital ID' : (type == 'immigration' ? 'Scan at immigration autogate' : (type == 'driving' ? 'Show this to verify your Licence' : 'Show this to verify your Passport')),
             style: TextStyle(color: Colors.grey[500], fontSize: 12),
           ),
           const SizedBox(height: 16),
@@ -1330,6 +1549,32 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
               ],
             ),
           ),
+          if (type == 'immigration') ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue[50], 
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue[100]!),
+              ),
+              child: Column(
+                children: [
+                  _buildImmigrationRow(Icons.public, 'Country', 'Malaysia (Departure)'),
+                  Divider(height: 24, color: Colors.blue.withOpacity(0.2)),
+                  _buildImmigrationRow(Icons.flight_takeoff, 'Airport', 'KLIA Terminal 1'),
+                  Divider(height: 24, color: Colors.blue.withOpacity(0.2)),
+                  Row(
+                    children: [
+                      Expanded(child: _buildImmigrationRow(Icons.meeting_room, 'Gate', 'H5 (Autogate)')),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildImmigrationRow(Icons.timer_outlined, 'Expiry', '23:59 Today')),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (onClose != null) ...[
             const SizedBox(height: 16),
             SizedBox(
@@ -1400,7 +1645,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Tap the button below to verify and view your MyKad QR.',
+                  'Tap the button below to verify and view your ${_currentQrType == 'ic' ? 'MyKad' : (_currentQrType == 'driving' ? 'Licence' : 'Passport')} QR.',
                   style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.3),
                 ),
               ],
@@ -1413,7 +1658,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
 
   Widget _buildRevealButton() {
     return GestureDetector(
-      onTap: _toggleQrReveal,
+      onTap: () => _authenticateAndReveal(_currentQrType),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -1467,7 +1712,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black.withOpacity(0.3)])),
-      child: SafeArea(top: false, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white.withOpacity(0.3))), child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_user, size: 14, color: Colors.grey[600]), const SizedBox(width: 8), Text('${_getCurrentDateTime()} • ${_getDeviceInfo()}', style: TextStyle(color: Colors.grey[600], fontSize: 11))]))),
+      child: SafeArea(top: false, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [Icon(Icons.verified_user, size: 14, color: Colors.grey[600]), const SizedBox(width: 8), Text('${_getCurrentDateTime()} • ${_getDeviceInfo()}', style: TextStyle(color: Colors.grey[600], fontSize: 11))]))),
     );
   }
 
@@ -1492,10 +1737,16 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
             ),
           ],
         ),
-        child: const Icon(
-          Icons.emergency,
-          color: Colors.white,
-          size: 28,
+        child: Center(
+          child: Text(
+            'SOS',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              letterSpacing: 1,
+            ),
+          ),
         ),
       ),
     );

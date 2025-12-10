@@ -1,7 +1,8 @@
-import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/glassy_button.dart';
+
 
 class OnboardingPage extends StatefulWidget {
   final VoidCallback onComplete;
@@ -840,129 +841,11 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
         ),
         const Spacer(),
         GlassyButton(
-          onPressed: widget.onComplete,
-          borderRadius: BorderRadius.circular(16),
-          child: const Text(
-            'Get Started',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-          ),
-        ),
-        const SizedBox(height: 40),
-      ],
-    );
-  }
-}
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: isDone
-                        ? Colors.white.withOpacity(0.3)
-                        : Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    isDone ? Icons.check_circle : icon,
-                    color: Colors.white.withOpacity(0.95),
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white.withOpacity(0.95),
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (!isDone)
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 18,
-                    color: Colors.white.withOpacity(0.7),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCompleteStep() {
-    return Column(
-      children: [
-        const Spacer(),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(60),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.4), width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.check_circle,
-                size: 60,
-                color: Colors.white.withOpacity(0.95),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 40),
-        Text(
-          'All Set!',
-          style: TextStyle(
-            fontSize: 36,
-            fontWeight: FontWeight.w800,
-            color: Colors.white.withOpacity(0.95),
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.25),
-                blurRadius: 12,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Your Digital ID is ready',
-          style: TextStyle(
-            fontSize: 18,
-            color: Colors.white.withOpacity(0.85),
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 8,
-              ),
-            ],
-          ),
-        ),
-        const Spacer(),
-        GlassyButton(
-          onPressed: widget.onComplete,
+          onPressed: () async {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('cached_user_name', _nameController.text.trim());
+            widget.onComplete();
+          },
           borderRadius: BorderRadius.circular(16),
           child: const Text(
             'Get Started',

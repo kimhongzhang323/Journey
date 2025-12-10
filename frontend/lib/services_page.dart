@@ -35,7 +35,13 @@ class _ServicesPageState extends State<ServicesPage> {
 
   Future<void> _handleLogout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    final cachedName = prefs.getString('cached_user_name');
+    await prefs.clear(); // Clear all
+    if (cachedName != null) {
+      await prefs.setString('cached_user_name', cachedName); // Restore name
+    }
+    await prefs.setBool('landing_page_seen', true); // Don't show intro animation again
+    
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MyApp()),
@@ -81,19 +87,29 @@ class _ServicesPageState extends State<ServicesPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Good Morning',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 14)),
-                            SizedBox(height: 4),
-                            Text('Tan Ah Kow',
-                                style: TextStyle(
-                                    color: Colors.black,
+                        Image.asset(
+                          'assets/images/journey_logo.png',
+                          height: 32,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Row(
+                              children: [
+                                Icon(Icons.auto_awesome, color: Colors.indigo[400], size: 24),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Journey',
+                                  style: TextStyle(
                                     fontSize: 22,
-                                    fontWeight: FontWeight.bold)),
-                          ],
+                                    fontWeight: FontWeight.bold,
+                                    foreground: Paint()
+                                      ..shader = LinearGradient(
+                                        colors: [Colors.indigo[400]!, Colors.purple[300]!],
+                                      ).createShader(const Rect.fromLTWH(0, 0, 150, 20)),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                         Row(
                           children: [
@@ -137,19 +153,25 @@ class _ServicesPageState extends State<ServicesPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Quick Actions',
+                       
                         style: TextStyle(
+                            
                             fontSize: 16, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildQuickAction(
+                            
                             Icons.qr_code_scanner, 'Scan', Colors.black),
                         _buildQuickAction(
+                            
                             Icons.credit_card, 'MyKad', Colors.blue),
                         _buildQuickAction(
+                            
                             Icons.flight_takeoff, 'Passport', Colors.indigo),
                         _buildQuickAction(
+                            
                             Icons.receipt_long, 'Tax', Colors.green),
                       ],
                     ),
@@ -171,10 +193,14 @@ class _ServicesPageState extends State<ServicesPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Latest News',
+                             
                               style: TextStyle(
+                                  
                                   fontSize: 16, fontWeight: FontWeight.w600)),
                           Text('See all',
+                             
                               style: TextStyle(
+                                  
                                   fontSize: 14, color: Colors.grey[500])),
                         ],
                       ),
@@ -200,14 +226,21 @@ class _ServicesPageState extends State<ServicesPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(news['date']!,
+                                   
                                     style: TextStyle(
+                                        
                                         color: Colors.white.withOpacity(0.5),
+                                       
                                         fontSize: 12)),
                                 const SizedBox(height: 8),
                                 Text(news['title']!,
+                                   
                                     style: const TextStyle(
+                                        
                                         color: Colors.white,
+                                       
                                         fontSize: 16,
+                                       
                                         fontWeight: FontWeight.w600)),
                                 const Spacer(),
                                 Text(news['subtitle']!,
@@ -231,7 +264,9 @@ class _ServicesPageState extends State<ServicesPage> {
                           margin: const EdgeInsets.symmetric(horizontal: 3),
                           decoration: BoxDecoration(
                             color: _currentNewsIndex == index
+                               
                                 ? Colors.black
+                               
                                 : Colors.grey[300],
                             borderRadius: BorderRadius.circular(3),
                           ),
@@ -251,7 +286,9 @@ class _ServicesPageState extends State<ServicesPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('All Services',
+                       
                         style: TextStyle(
+                            
                             fontSize: 16, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 20),
                     GridView.count(
@@ -299,10 +336,14 @@ class _ServicesPageState extends State<ServicesPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Recent Activity',
+                           
                             style: TextStyle(
+                                
                                 fontSize: 16, fontWeight: FontWeight.w600)),
                         Text('View all',
+                           
                             style: TextStyle(
+                                
                                 fontSize: 14, color: Colors.grey[500])),
                       ],
                     ),

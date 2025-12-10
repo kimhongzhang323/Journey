@@ -24,6 +24,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.light,
         scaffoldBackgroundColor: const Color(0xFFF5F5F7),
         colorScheme: ColorScheme.fromSeed(
+            
             seedColor: Colors.black, brightness: Brightness.light),
         fontFamily: 'SF Pro Display',
       ),
@@ -45,6 +46,8 @@ class _AppWrapperState extends State<AppWrapper> {
   bool _showVerification = false;
   bool _showSplash = false;
 
+  String? _cachedUserName;
+
   @override
   void initState() {
     super.initState();
@@ -55,12 +58,20 @@ class _AppWrapperState extends State<AppWrapper> {
     final prefs = await SharedPreferences.getInstance();
     final landingSeen = prefs.getBool('landing_page_seen') ?? false;
     final onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+    final cachedName = prefs.getString('cached_user_name');
     final shouldShowSplash = landingSeen && onboardingComplete;
 
     if (!mounted) return;
     setState(() {
-      _showLanding = !landingSeen;
-      _showVerification = landingSeen && !onboardingComplete;
+      _cachedUserName = cachedName;
+      // If not logged in (onboarding incomplete), show landing. 
+      // User might be "returning" (cachedName exists) but logged out.
+      _showLanding = !onboardingComplete; 
+      _showVerification = landingSeen && !onboardingComplete && cachedName == null; // Only show verification if in middle of onboarding? Simpler: Just Landing -> Onboarding
+      // actually, if logged out, onboarding_complete is false (cleared in logout?). 
+      // Wait, logout clears 'onboarding_complete'. So !onboardingComplete is true.
+      // So _showLanding = true. Correct.
+      
       _showSplash = shouldShowSplash;
       _isLoading = false;
     });
@@ -102,6 +113,8 @@ class _AppWrapperState extends State<AppWrapper> {
     _startSplashTimer();
   }
 
+
+
   void _goBackToLanding() {
     setState(() {
       _showVerification = false;
@@ -126,7 +139,9 @@ class _AppWrapperState extends State<AppWrapper> {
       return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(
+            
             child:
+               
                 CircularProgressIndicator(color: Colors.black, strokeWidth: 2)),
       );
     }
@@ -135,6 +150,7 @@ class _AppWrapperState extends State<AppWrapper> {
       return LandingPage(
         onSignUp: _completeLanding,
         onLogin: _handleLogin,
+        cachedUserName: _cachedUserName,
       );
     }
 
@@ -179,10 +195,15 @@ class _MainLayoutState extends State<MainLayout> {
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
+            
             BoxShadow(
+                
                 color: Colors.black.withOpacity(0.05),
+               
                 blurRadius: 10,
+               
                 offset: const Offset(0, -5))
+          
           ],
         ),
         child: SafeArea(
