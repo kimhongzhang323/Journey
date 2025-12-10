@@ -24,6 +24,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.light,
         scaffoldBackgroundColor: const Color(0xFFF5F5F7),
         colorScheme: ColorScheme.fromSeed(
+            
             seedColor: Colors.black, brightness: Brightness.light),
         fontFamily: 'SF Pro Display',
       ),
@@ -112,6 +113,8 @@ class _AppWrapperState extends State<AppWrapper> {
     _startSplashTimer();
   }
 
+
+
   void _goBackToLanding() {
     setState(() {
       _showVerification = false;
@@ -136,7 +139,9 @@ class _AppWrapperState extends State<AppWrapper> {
       return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(
+            
             child:
+               
                 CircularProgressIndicator(color: Colors.black, strokeWidth: 2)),
       );
     }
@@ -190,10 +195,15 @@ class _MainLayoutState extends State<MainLayout> {
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
+            
             BoxShadow(
+                
                 color: Colors.black.withOpacity(0.05),
+               
                 blurRadius: 10,
+               
                 offset: const Offset(0, -5))
+          
           ],
         ),
         child: SafeArea(
