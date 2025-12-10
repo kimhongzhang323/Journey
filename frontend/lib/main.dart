@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'id_page.dart';
 import 'services_page.dart';
 import 'chat_page.dart';
-import 'onboarding_page.dart';
 import 'landing_page.dart';
 import 'splash_page.dart';
 
@@ -41,7 +40,6 @@ class AppWrapper extends StatefulWidget {
 class _AppWrapperState extends State<AppWrapper> {
   bool _isLoading = true;
   bool _showLanding = true;
-  bool _showOnboarding = true;
   bool _showSplash = false;
 
   @override
@@ -53,13 +51,11 @@ class _AppWrapperState extends State<AppWrapper> {
   Future<void> _checkAppStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final landingSeen = prefs.getBool('landing_page_seen') ?? false;
-    final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-    final shouldShowSplash = landingSeen && onboardingCompleted;
+    final shouldShowSplash = landingSeen;
 
     if (!mounted) return;
     setState(() {
       _showLanding = !landingSeen;
-      _showOnboarding = landingSeen && !onboardingCompleted;
       _showSplash = shouldShowSplash;
       _isLoading = false;
     });
@@ -84,16 +80,6 @@ class _AppWrapperState extends State<AppWrapper> {
     if (!mounted) return;
     setState(() {
       _showLanding = false;
-      _showOnboarding = true;
-    });
-  }
-
-  Future<void> _completeOnboarding() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_completed', true);
-    if (!mounted) return;
-    setState(() {
-      _showOnboarding = false;
       _showSplash = true;
     });
     _startSplashTimer();
@@ -110,10 +96,6 @@ class _AppWrapperState extends State<AppWrapper> {
 
     if (_showLanding) {
       return LandingPage(onGetStarted: _completeLanding);
-    }
-
-    if (_showOnboarding) {
-      return OnboardingPage(onComplete: _completeOnboarding);
     }
 
     if (_showSplash) {
