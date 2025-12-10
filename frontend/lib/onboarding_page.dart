@@ -189,18 +189,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
     return Scaffold(
       backgroundColor: Colors.white,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0E4CFF),
-              Color(0xFF4C3DEB),
-              Color(0xFF0EA6C1),
-              Color(0xFF9B59B6),
-            ],
-            stops: [0.05, 0.35, 0.65, 0.95],
-          ),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
         ),
         child: SafeArea(
           child: FadeTransition(
@@ -236,7 +226,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
             onTap: widget.onBack,
             child: Icon(
               Icons.arrow_back_ios,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.black87,
               size: 22,
             ),
           )
@@ -244,12 +234,12 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
           const SizedBox(width: 26),
         Row(
           children: [
-            Icon(Icons.auto_awesome, color: Colors.white.withOpacity(0.9), size: 22),
+            Icon(Icons.auto_awesome, color: Colors.black87, size: 22),
             const SizedBox(width: 6),
             Text(
               'Journey',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.95),
+                color: Colors.black,
                 fontWeight: FontWeight.w700,
                 fontSize: 18,
               ),
@@ -272,8 +262,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
             height: 4,
             decoration: BoxDecoration(
               color: isCompleted || isCurrent 
-                  ? Colors.white.withOpacity(0.9)
-                  : Colors.white.withOpacity(0.3),
+                  ? Colors.black87
+                  : Colors.black12,
               borderRadius: BorderRadius.circular(2),
               boxShadow: (isCompleted || isCurrent)
                   ? [
@@ -306,32 +296,26 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
     return Column(
       children: [
         const Spacer(),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(90),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-              ),
-              child: _isProcessing
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Icon(
-                      Icons.credit_card,
-                      size: 70,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-            ),
+        Container(
+          width: 180,
+          height: 180,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.grey[300]!, width: 1),
           ),
+          child: _isProcessing
+              ? Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.black87,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Icon(
+                  Icons.credit_card,
+                  size: 70,
+                  color: Colors.black54,
+                ),
         ),
         const SizedBox(height: 40),
         Text(
@@ -339,13 +323,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w800,
-            color: Colors.white.withOpacity(0.95),
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.25),
-                blurRadius: 12,
-              ),
-            ],
+            color: Colors.black,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 12),
@@ -354,13 +333,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withOpacity(0.85),
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 8,
-              ),
-            ],
+            color: Colors.grey[600],
+            height: 1.4,
           ),
         ),
         const Spacer(),
@@ -388,13 +362,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w800,
-              color: Colors.white.withOpacity(0.95),
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(0.25),
-                  blurRadius: 12,
-                ),
-              ],
+              color: Colors.black,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 8),
@@ -402,13 +371,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
             'Please verify and edit if needed',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.white.withOpacity(0.85),
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 8,
-                ),
-              ],
+              color: Colors.grey[600],
             ),
           ),
           const SizedBox(height: 32),
@@ -446,50 +409,46 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
             label,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.grey[800],
               fontWeight: FontWeight.w600,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 4,
-                ),
-              ],
             ),
           ),
           const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[300]!),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                child: TextField(
-                  controller: controller,
-                  maxLines: maxLines,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: label,
-                    labelStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
-                    ),
-                    prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.9), size: 22),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                  ),
-                  cursorColor: Colors.white,
-                ),
+              ],
+            ),
+            child: TextField(
+              controller: controller,
+              maxLines: maxLines,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
+              decoration: InputDecoration(
+                labelText: label,
+                labelStyle: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 14,
+                ),
+                floatingLabelBehavior: FloatingLabelBehavior.never,
+                prefixIcon: Icon(icon, color: Colors.grey[600], size: 22),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              ),
+              cursorColor: Colors.black,
             ),
           ),
         ],
@@ -507,45 +466,33 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
             label,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.grey[800],
               fontWeight: FontWeight.w600,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 4,
-                ),
-              ],
             ),
           ),
           const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.25)),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: Colors.grey[600], size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(icon, color: Colors.white.withOpacity(0.8), size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(Icons.lock, size: 16, color: Colors.white.withOpacity(0.6)),
-                  ],
-                ),
-              ),
+                const Spacer(),
+                Icon(Icons.lock, size: 16, color: Colors.grey[400]),
+              ],
             ),
           ),
         ],
@@ -566,16 +513,16 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.2),
+                  color: Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withOpacity(0.4)),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
                 ),
                 child: Column(
                   children: [
                     Icon(
                       Icons.warning_amber_rounded,
                       size: 56,
-                      color: Colors.white.withOpacity(0.95),
+                      color: Colors.orange,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -583,13 +530,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white.withOpacity(0.95),
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 8,
-                          ),
-                        ],
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -597,13 +538,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
                       'The following fields differ between your IC and Passport:',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 6,
-                          ),
-                        ],
+                        color: Colors.black54,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -611,19 +546,19 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.3)),
+                        border: Border.all(color: Colors.grey[300]!),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.error_outline, color: Colors.white.withOpacity(0.9), size: 20),
+                          Icon(Icons.error_outline, color: Colors.orange[700], size: 20),
                           const SizedBox(width: 12),
                           Text(
                             field,
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.95),
+                              color: Colors.black87,
                             ),
                           ),
                         ],
@@ -634,7 +569,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
                       'Passport data will not update your IC details. Please update your IC first if needed.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.75),
+                        color: Colors.grey[600],
                         fontSize: 13,
                       ),
                     ),
@@ -656,7 +591,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
           TextButton(
             onPressed: _goBackToEditIc,
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white.withOpacity(0.9),
+              foregroundColor: Colors.grey[600],
             ),
             child: const Text(
               'Go Back to Edit IC',
@@ -671,32 +606,26 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
     return Column(
       children: [
         const Spacer(),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(90),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
-              ),
-              child: _isProcessing
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Icon(
-                      Icons.menu_book,
-                      size: 70,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-            ),
+        Container(
+          width: 180,
+          height: 180,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.grey[300]!, width: 1),
           ),
+          child: _isProcessing
+              ? Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.black87,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Icon(
+                  Icons.menu_book,
+                  size: 70,
+                  color: Colors.black54,
+                ),
         ),
         const SizedBox(height: 40),
         Text(
@@ -704,13 +633,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w800,
-            color: Colors.white.withOpacity(0.95),
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.25),
-                blurRadius: 12,
-              ),
-            ],
+            color: Colors.black,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 12),
@@ -719,35 +643,24 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withOpacity(0.85),
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 8,
-              ),
-            ],
+            color: Colors.grey[600],
+            height: 1.4,
           ),
         ),
         const SizedBox(height: 16),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
-              ),
-              child: Text(
-                'IC data is locked after validation',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Text(
+            'IC data is locked after validation',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -764,7 +677,7 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
         TextButton(
           onPressed: _skipPassport,
           style: TextButton.styleFrom(
-            foregroundColor: Colors.white.withOpacity(0.85),
+            foregroundColor: Colors.grey[600],
           ),
           child: const Text(
             'Skip for now',
@@ -785,13 +698,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w800,
-            color: Colors.white.withOpacity(0.95),
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.25),
-                blurRadius: 12,
-              ),
-            ],
+            color: Colors.black,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 12),
@@ -799,13 +707,8 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
           'Complete both to secure your Digital ID',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withOpacity(0.85),
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 8,
-              ),
-            ],
+            color: Colors.grey[600],
+            height: 1.4,
           ),
         ),
         const SizedBox(height: 40),
@@ -838,25 +741,117 @@ class _OnboardingPageState extends State<OnboardingPage> with SingleTickerProvid
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: isDone
-                  ? Colors.white.withOpacity(0.25)
-                  : Colors.white.withOpacity(0.15),
+                  ? Colors.green.withOpacity(0.1)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isDone
-                    ? Colors.white.withOpacity(0.5)
-                    : Colors.white.withOpacity(0.3),
+                    ? Colors.green.withOpacity(0.5)
+                    : Colors.grey[300]!,
                 width: isDone ? 2 : 1,
               ),
-              boxShadow: isDone
-                  ? [
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.3),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: isDone
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: isDone
+                        ? Colors.green.withOpacity(0.2)
+                        : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    isDone ? Icons.check_circle : icon,
+                    color: isDone ? Colors.green[700] : Colors.grey[600],
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                if (!isDone)
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 18,
+                    color: Colors.grey[400],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompleteStep() {
+    return Column(
+      children: [
+        const Spacer(),
+        Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.05),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.green.withOpacity(0.2), width: 3),
+          ),
+          child: Icon(
+            Icons.check_circle,
+            size: 60,
+            color: Colors.green,
+          ),
+        ),
+        const SizedBox(height: 40),
+        Text(
+          'All Set!',
+          style: TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+            letterSpacing: -1,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Your Digital ID is ready',
+          style: TextStyle(
+            fontSize: 18,
+            color: Colors.grey[600],
+          ),
+        ),
+        const Spacer(),
+        GlassyButton(
+          onPressed: widget.onComplete,
+          borderRadius: BorderRadius.circular(16),
+          child: const Text(
+            'Get Started',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+          ),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+}
             child: Row(
               children: [
                 Container(
