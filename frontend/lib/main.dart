@@ -236,6 +236,7 @@ class _MainLayoutState extends State<MainLayout> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+<<<<<<< HEAD
             Icon(isSelected ? activeIcon : icon,
                 color: isSelected ? Colors.black : Colors.grey[400], size: 26),
             const SizedBox(height: 4),
@@ -245,6 +246,22 @@ class _MainLayoutState extends State<MainLayout> {
                     fontSize: 11,
                     fontWeight:
                         isSelected ? FontWeight.w600 : FontWeight.w400)),
+=======
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? Colors.red[500] : Colors.grey[400],
+              size: 26,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.red[500] : Colors.grey[400],
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+>>>>>>> 06fce0a (feat: Enhance ID page with card tab navigation, welcome section, and improved card display for NRIC, Driving Licence, and Passport)
           ],
         ),
       ),
