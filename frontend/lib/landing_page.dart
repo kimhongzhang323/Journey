@@ -1,12 +1,19 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // import shared_preferences
 import 'widgets/glassy_button.dart';
 
 class LandingPage extends StatefulWidget {
   final VoidCallback onSignUp;
   final VoidCallback onLogin;
+  final String? cachedUserName;
 
-  const LandingPage({super.key, required this.onSignUp, required this.onLogin});
+  const LandingPage({
+    super.key, 
+    required this.onSignUp, 
+    required this.onLogin,
+    this.cachedUserName,
+  });
 
   @override
   State<LandingPage> createState() => _LandingPageState();
@@ -18,10 +25,13 @@ class _LandingPageState extends State<LandingPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   bool _isScanning = false;
+  // Local state to handle "Use another account" content switch
+  bool _showQuickLogin = true; 
 
   @override
   void initState() {
     super.initState();
+    _showQuickLogin = widget.cachedUserName != null; // Default to quick login if name exists
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -39,6 +49,15 @@ class _LandingPageState extends State<LandingPage>
     );
 
     _controller.forward();
+  }
+  
+  // Method to clear cached user
+  Future<void> _clearCachedUser() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cached_user_name');
+      setState(() {
+        _showQuickLogin = false;
+      });
   }
 
   @override
@@ -71,11 +90,10 @@ class _LandingPageState extends State<LandingPage>
                         const SizedBox(height: 36),
                         const SizedBox(height: 36),
                         const Spacer(),
-                        _buildTextStack(),
-                        const SizedBox(height: 32),
-                        _buildSignUpButton(),
-                        const SizedBox(height: 16),
-                        _buildLoginButton(),
+                        if (_showQuickLogin && widget.cachedUserName != null)
+                             _buildWelcomeBackUI()
+                        else
+                             _buildStandardUI(),
                         const Spacer(),
                       ],
                     ),
@@ -86,6 +104,92 @@ class _LandingPageState extends State<LandingPage>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStandardUI() {
+    return Column(
+      children: [
+        _buildTextStack(),
+        const SizedBox(height: 32),
+        _buildSignUpButton(),
+        const SizedBox(height: 16),
+        _buildLoginButton(),
+      ],
+    );
+  }
+
+  Widget _buildWelcomeBackUI() {
+    return Column(
+      children: [
+         Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: const CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.blueAccent,
+            child: Icon(Icons.person, size: 40, color: Colors.white),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Welcome back,',
+          style: TextStyle(
+            fontSize: 20,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          widget.cachedUserName!,
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+            letterSpacing: -0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 48),
+        GlassyButton(
+          onPressed: _handleLogin,
+          borderRadius: BorderRadius.circular(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+               Icon(Icons.face, color: Colors.black87),
+               SizedBox(width: 12),
+               Text(
+                'Quick Login',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        TextButton(
+          onPressed: _clearCachedUser, 
+          child: Text(
+            'Use another account',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

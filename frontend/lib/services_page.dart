@@ -35,7 +35,13 @@ class _ServicesPageState extends State<ServicesPage> {
 
   Future<void> _handleLogout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    final cachedName = prefs.getString('cached_user_name');
+    await prefs.clear(); // Clear all
+    if (cachedName != null) {
+      await prefs.setString('cached_user_name', cachedName); // Restore name
+    }
+    await prefs.setBool('landing_page_seen', true); // Don't show intro animation again
+    
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MyApp()),
