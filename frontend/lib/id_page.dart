@@ -145,8 +145,10 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
   Future<void> _toggleQrReveal() async {
     if (_qrUnlocked) {
       // If already unlocked/revealed, hide it
-      _revealController.reverse();
-      setState(() { _qrUnlocked = false; });
+      await _revealController.reverse();
+      if (mounted) {
+        setState(() { _qrUnlocked = false; });
+      }
     } else {
       // If hidden, verify first
       final verified = await _showBiometricSheet();
@@ -299,23 +301,6 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Revealed QR panel behind the main content when pulling down
-            if (!_isTravelMode)
-              Positioned(
-                left: 20,
-                right: 20,
-                top: 16,
-                child: IgnorePointer(
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 120),
-                    opacity: (_pullOffset / _pullMax).clamp(0, 1),
-                    child: Transform.scale(
-                      scale: 0.98 + 0.02 * (_pullOffset / _pullMax).clamp(0, 1),
-                      child: _qrUnlocked ? _buildQrSection('ic') : _buildLockedQrNotice(),
-                    ),
-                  ),
-                ),
-              ),
             // Main content without drag gesture
             SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
@@ -343,6 +328,32 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
                 ),
               ),
             ),
+            // Revealed QR panel - positioned on top when unlocked to receive touch events
+            if (!_isTravelMode)
+              Positioned(
+                left: 20,
+                right: 20,
+                top: 16,
+                child: _qrUnlocked
+                    ? AnimatedOpacity(
+                        duration: const Duration(milliseconds: 120),
+                        opacity: (_pullOffset / _pullMax).clamp(0, 1),
+                        child: Transform.scale(
+                          scale: 0.98 + 0.02 * (_pullOffset / _pullMax).clamp(0, 1),
+                          child: _buildQrSection('ic', onClose: _toggleQrReveal),
+                        ),
+                      )
+                    : IgnorePointer(
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 120),
+                          opacity: (_pullOffset / _pullMax).clamp(0, 1),
+                          child: Transform.scale(
+                            scale: 0.98 + 0.02 * (_pullOffset / _pullMax).clamp(0, 1),
+                            child: _buildLockedQrNotice(),
+                          ),
+                        ),
+                      ),
+              ),
             // Emergency Button
             Positioned(
               right: 20,
@@ -571,7 +582,7 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildQrSection(String type) {
+  Widget _buildQrSection(String type, {VoidCallback? onClose}) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -607,6 +618,38 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
               ],
             ),
           ),
+          if (onClose != null) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: onClose,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.grey[300]!),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.close, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Close',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
