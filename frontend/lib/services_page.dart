@@ -64,6 +64,8 @@ class _ServicesPageState extends State<ServicesPage> {
       'colors': [Colors.blue[900]!, Colors.blue[700]!],
       'action': 'Reload',
       'isActive': true,
+      'logos': ['assets/images/TnG.png'],
+      'topIconAsset': 'assets/images/nfc.webp',
     },
     {
       'title': 'Fuel Subsidy',
@@ -72,6 +74,7 @@ class _ServicesPageState extends State<ServicesPage> {
       'colors': [Colors.orange[900]!, Colors.orange[700]!],
       'action': 'History',
       'isActive': true,
+      'logos': [],
     },
      {
       'title': 'MyKasih - SAR',
@@ -80,6 +83,7 @@ class _ServicesPageState extends State<ServicesPage> {
       'colors': [Colors.red[900]!, Colors.red[700]!],
       'action': 'View',
       'isActive': true,
+      'logos': ['assets/images/Malaysia_Madani_logo.png'],
     },
     {
       'title': 'Madani Credit',
@@ -88,6 +92,7 @@ class _ServicesPageState extends State<ServicesPage> {
       'colors': [Colors.purple[900]!, Colors.purple[700]!],
       'action': 'Info',
       'isActive': false,
+      'logos': [],
     },
   ];
 
@@ -206,33 +211,19 @@ class _ServicesPageState extends State<ServicesPage> {
                             ),
                           ],
                         ),
-                        Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              child: const Icon(Icons.notifications_none,
-                                  color: Colors.black54),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey[200]!, width: 2),
+                            image: const DecorationImage(
+                              image: AssetImage('assets/images/profile.jpeg'), // Placeholder
+                              fit: BoxFit.cover,
                             ),
-                            const SizedBox(width: 12),
-                            GestureDetector(
-                              onTap: _handleLogout,
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.red[50],
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: Icon(Icons.logout,
-                                    color: Colors.red[700], size: 20),
-                              ),
-                            ),
-                          ],
+                          ),
+                          child: const Icon(Icons.person, size: 24, color: Colors.grey), // Fallback
                         ),
                       ],
                     ),
@@ -282,7 +273,9 @@ class _ServicesPageState extends State<ServicesPage> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              Icon(card['icon'], color: Colors.white.withOpacity(0.8), size: 22),
+                              card['topIconAsset'] != null
+                                  ? Image.asset(card['topIconAsset'], height: 24, fit: BoxFit.contain)
+                                  : Icon(card['icon'], color: Colors.white.withOpacity(0.8), size: 22),
                             ],
                           ),
                           Column(
@@ -293,14 +286,39 @@ class _ServicesPageState extends State<ServicesPage> {
                                   style: TextStyle(color: Colors.white70, fontSize: 12),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  card['balance'],
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: -1,
-                                  ),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        card['balance'],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: -1,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (card['logos'] != null && (card['logos'] as List).isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 8.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: (card['logos'] as List<String>).map((logo) => Padding(
+                                            padding: const EdgeInsets.only(left: 6.0),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.2),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Image.asset(logo, height: 35, fit: BoxFit.contain),
+                                            ), 
+                                          )).toList(),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                              ],
                           ),
@@ -624,7 +642,8 @@ class _ServicesPageState extends State<ServicesPage> {
                       crossAxisSpacing: 12,
                       childAspectRatio: 0.8,
                       children: [
-                        _buildServiceIcon(Icons.badge, 'JPN', Colors.blue,
+                        _buildServiceIcon('JPN', Colors.blue,
+                            assetPath: 'assets/images/jpn.png',
                             onTap: () {
                           Navigator.push(
                               context,
@@ -632,29 +651,29 @@ class _ServicesPageState extends State<ServicesPage> {
                                   builder: (context) => const JPNPage()));
                         }),
                         _buildServiceIcon(
-                            Icons.flight, 'Immigration', Colors.indigo, onTap: () {
+                            'Immigration', Colors.indigo, assetPath: 'assets/images/Immigration.png', onTap: () {
                                Navigator.push(context, MaterialPageRoute(builder: (context) => const ImmigrationPage()));
                             }),
                         _buildServiceIcon(
-                            Icons.directions_car, 'JPJ', Colors.orange, onTap: () {
+                            'JPJ', Colors.orange, assetPath: 'assets/images/jpj.png', onTap: () {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => const JPJPage()));
                             }),
-                        _buildServiceIcon(Icons.receipt, 'LHDN', Colors.green, onTap: () {
+                        _buildServiceIcon('LHDN', Colors.green, assetPath: 'assets/images/LHDN.png', onTap: () {
                                Navigator.push(context, MaterialPageRoute(builder: (context) => const LHDNPage()));
                             }),
-                        _buildServiceIcon(Icons.savings, 'KWSP', Colors.teal, onTap: () {
+                        _buildServiceIcon('KWSP', Colors.teal, assetPath: 'assets/images/KWSP.jpg', onTap: () {
                                Navigator.push(context, MaterialPageRoute(builder: (context) => const KWSPPage()));
                             }),
                         _buildServiceIcon(
-                            Icons.security, 'PERKESO', Colors.cyan, onTap: () {
+                            'PERKESO', Colors.cyan, icon: Icons.security, onTap: () {
                                Navigator.push(context, MaterialPageRoute(builder: (context) => const PerkesoPage()));
                             }),
                         _buildServiceIcon(
-                            Icons.print, 'Print/Scan', Colors.purple, onTap: () {
+                            'Print/Scan', Colors.purple, icon: Icons.print, onTap: () {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => const PrintIcPage()));
                             }),
                         _buildServiceIcon(
-                            Icons.local_hospital, 'MOH', Colors.red, onTap: () {
+                            'MOH', Colors.red, assetPath: 'assets/images/MOH.webp', onTap: () {
                                Navigator.push(context, MaterialPageRoute(builder: (context) => const MOHPage()));
                             }),
 
@@ -717,6 +736,34 @@ class _ServicesPageState extends State<ServicesPage> {
                 ),
               ),
               const SizedBox(height: 24),
+              
+              // Powered By Footer
+              Opacity(
+                opacity: 0.6,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Powered by',
+                        style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(width: 8),
+                      Image.asset('assets/images/TnG.png', height: 16),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 1, 
+                        height: 12, 
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(width: 8),
+                      Image.asset('assets/images/Malaysia_Madani_logo.png', height: 16),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -725,8 +772,8 @@ class _ServicesPageState extends State<ServicesPage> {
   }
 
 
-  Widget _buildServiceIcon(IconData icon, String label, Color color,
-      {VoidCallback? onTap}) {
+  Widget _buildServiceIcon(String label, Color color,
+      {VoidCallback? onTap, IconData? icon, String? assetPath}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -734,11 +781,14 @@ class _ServicesPageState extends State<ServicesPage> {
           Container(
             width: 48,
             height: 48,
+            padding: assetPath != null ? const EdgeInsets.all(8) : null,
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: assetPath != null
+                ? Image.asset(assetPath, fit: BoxFit.contain)
+                : Icon(icon, color: color, size: 22),
           ),
           const SizedBox(height: 8),
           Text(

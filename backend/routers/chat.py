@@ -1,11 +1,12 @@
 """
 Chat-related API endpoints.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import Response
 import httpx
 import json
 import re
+import base64
 
 from config import GEMINI_API_KEY, ELEVENLABS_API_KEY, GOOGLE_MAPS_API_KEY, VOICE_IDS
 from models import ChatRequest
@@ -58,6 +59,77 @@ async def chat(request: ChatRequest):
         return {"response": text, "type": "text"}
 
 
+@router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    message: str = Form("Analyze this document")
+):
+    """Upload file for multimodal analysis"""
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="Gemini API key not configured")
+    
+    # Read file content
+    content = await file.read()
+    encoded_content = base64.b64encode(content).decode("utf-8")
+    
+    # Determine mime type
+    mime_type = file.content_type or "image/jpeg"
+    
+    system_prompt = """
+    You are an intelligent government document analyzer for Malaysia.
+    Analyze the uploaded image or document.
+    1. Identify what type of document it is (e.g., MyKad, Driving License, Passport, Utility Bill, or unknown).
+    2. Extract key information visible in the image (Name, ID Number, Address, etc.).
+    3. Check for any issues (e.g., blurred text, expired date if visible).
+    4. Provide a summary of the document.
+    
+    Format your response in JSON:
+    {
+        "response": "Summary text description...",
+        "type": "analysis",
+        "document_type": "detected type",
+        "extracted_data": {"field": "value"}
+    }
+    """
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            json={
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [
+                            {"text": f"{system_prompt}\n\nUser message: {message}"},
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": encoded_content
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.4,
+                    "maxOutputTokens": 1024,
+                    "responseMimeType": "application/json"
+                }
+            }
+        )
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail="Gemini API error")
+        
+        data = response.json()
+        text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+        
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            return {"response": text, "type": "analysis"}
+
+
 @router.post("/simple")
 async def simple_chat(request: ChatRequest):
     """Simple chat endpoint returning text only"""
@@ -96,6 +168,23 @@ async def text_to_speech(text: str, language: str = "english"):
             raise HTTPException(status_code=response.status_code, detail="TTS API error")
         
         return Response(content=response.content, media_type="audio/mpeg")
+
+
+@router.post("/payment")
+async def process_payment(task_id: str = Form(...), step_id: int = Form(...), amount: str = Form(...)):
+    """
+    Mock payment processing endpoint.
+    In a real app, this would interface with Stripe/Payment Gateway.
+    """
+    import asyncio
+    await asyncio.sleep(2)  # Simulate network delay associated with payment processing
+    
+    return {
+        "status": "success",
+        "message": "Payment processed successfully via Stripe (Mock)",
+        "transaction_id": "txn_mock_123456789",
+        "amount": amount
+    }
 
 
 @router.get("/locations/{service}")

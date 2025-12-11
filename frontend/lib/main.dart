@@ -4,6 +4,8 @@ import 'id_page.dart';
 import 'services_page.dart';
 import 'chat_page.dart';
 import 'landing_page.dart';
+import 'notification_page.dart';
+import 'profile_page.dart';
 import 'splash_page.dart';
 import 'onboarding_page.dart';
 
@@ -181,42 +183,36 @@ class _MainLayoutState extends State<MainLayout> {
   final List<Widget> _pages = [
     const IdPage(),
     const ServicesPage(),
+    const NotificationPage(),
     const ChatPage(),
+    const ProfilePage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: _pages[_currentIndex],
-      ),
+      body: _pages[_currentIndex], // Removed AnimatedSwitcher to simplify state retention test
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            
-            BoxShadow(
-                
+             BoxShadow(
                 color: Colors.black.withOpacity(0.05),
-               
                 blurRadius: 10,
-               
                 offset: const Offset(0, -5))
-          
           ],
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Reduced padding slightly
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, // Better spacing for 5 items
               children: [
                 _buildNavItem(0, Icons.wallet_outlined, Icons.wallet, 'Home'),
-                _buildNavItem(
-                    1, Icons.grid_view_outlined, Icons.grid_view, 'Services'),
-                _buildNavItem(2, Icons.chat_bubble_outline, Icons.chat_bubble,
-                    'Assistant'),
+                _buildNavItem(1, Icons.grid_view_outlined, Icons.grid_view, 'Services'),
+                 _buildNavItem(2, Icons.notifications_outlined, Icons.notifications, 'Inbox'),
+                _buildNavItem(3, Icons.chat_bubble_outline, Icons.chat_bubble, 'Assistant'),
+                 _buildNavItem(4, Icons.person_outline, Icons.person, 'Profile'),
               ],
             ),
           ),
@@ -232,7 +228,7 @@ class _MainLayoutState extends State<MainLayout> {
       onTap: () => setState(() => _currentIndex = index),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 70,
+        width: 60, // Reduced from 70 to fit 5 items
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

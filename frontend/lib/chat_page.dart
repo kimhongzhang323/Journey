@@ -10,6 +10,11 @@ import 'widgets/glassy_button.dart';
 import 'widgets/task_sidebar.dart';
 import 'chat_history_sheet.dart';
 import 'models/agentic_models.dart';
+import 'pages/payment_page.dart';
+
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -31,6 +36,7 @@ class ChatMessage {
   final double? mapLat;
   final double? mapLng;
   final DateTime timestamp;
+  final String? imagePath; // Added for image display
 
   ChatMessage({
     required this.content,
@@ -44,9 +50,14 @@ class ChatMessage {
     this.locations,
     this.mapLat,
     this.mapLng,
+    this.imagePath,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 }
+
+// ... ChecklistItem ...
+
+
 
 class ChecklistItem {
   String title;
@@ -215,7 +226,17 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _openUrl(String url) {
-    html.window.open(url, '_blank');
+    if (url.isNotEmpty) html.window.open(url, '_blank');
+  }
+
+  void _openMap(double lat, double lng, String type) {
+    String url = '';
+    if (type == 'google') {
+      url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
+    } else if (type == 'waze') {
+      url = 'https://waze.com/ul?ll=$lat,$lng&navigate=yes';
+    }
+    if (url.isNotEmpty) html.window.open(url, '_blank');
   }
 
   String _registerMapView(double lat, double lng, String query) {
@@ -250,14 +271,23 @@ class _ChatPageState extends State<ChatPage> {
         final data = jsonDecode(response.body);
         final results = (data['results'] as List).map((e) => e as Map<String, dynamic>).toList();
         
+        // Use the first result's location for the map center if available
+        double? targetLat = lat.toDouble();
+        double? targetLng = lng.toDouble();
+        
+        if (results.isNotEmpty) {
+          targetLat = (results[0]['lat'] as num?)?.toDouble();
+          targetLng = (results[0]['lng'] as num?)?.toDouble();
+        }
+
         setState(() {
           _messages.add(ChatMessage(
             content: "Found ${results.length} nearby ${service.toUpperCase()} offices:",
             isUser: false,
             type: 'locations',
             locations: results,
-            mapLat: lat.toDouble(),
-            mapLng: lng.toDouble(),
+            mapLat: targetLat, // Center on target
+            mapLng: targetLng, // Center on target
             url: data['website'],
             label: 'Visit Official Website',
           ));
@@ -375,6 +405,140 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  void _showAttachmentOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            const Text('Add Attachment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildAttachmentOption(
+                  icon: Icons.image,
+                  label: 'Photo',
+                  color: Colors.purple,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _handleAttachment('photo');
+                  },
+                ),
+                _buildAttachmentOption(
+                  icon: Icons.insert_drive_file,
+                  label: 'File',
+                  color: Colors.blue,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _handleAttachment('file');
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachmentOption({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+
+
+  Future<void> _handleAttachment(String type) async {
+    String? filePath;
+    String? fileName;
+
+    try {
+        if (type == 'photo') {
+            final ImagePicker picker = ImagePicker();
+            final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+            if (image != null) {
+                filePath = image.path;
+                fileName = image.name;
+            }
+        } else if (type == 'file') {
+            FilePickerResult? result = await FilePicker.platform.pickFiles();
+            if (result != null && result.files.single.path != null) {
+                filePath = result.files.single.path!;
+                fileName = result.files.single.name;
+            }
+        }
+
+        if (filePath != null) {
+             setState(() {
+                _messages.add(ChatMessage(
+                    content: "Uploaded: $fileName", 
+                    isUser: true, 
+                    imagePath: type == 'photo' ? filePath : null
+                ));
+                _isLoading = true;
+            });
+            _scrollToBottom();
+
+            final response = await _apiService.uploadFile(filePath);
+            final responseText = response['response'] ?? 'Analysis complete.';
+            final responseType = response['type'] ?? 'text';
+            final extractedData = response['extracted_data'];
+            
+            String finalContent = responseText;
+            if (extractedData != null) {
+                finalContent += "\n\n**Extracted Data:**\n";
+                (extractedData as Map).forEach((key, value) {
+                    finalContent += "- **$key**: $value\n";
+                });
+            }
+
+            setState(() {
+                _messages.add(ChatMessage(
+                    content: finalContent,
+                    isUser: false,
+                    type: responseType
+                ));
+                _isLoading = false;
+            });
+            _scrollToBottom();
+            if (_isVoiceMode) _speakText(responseText);
+        }
+    } catch (e) {
+        setState(() {
+            _messages.add(ChatMessage(content: "Error uploading: $e", isUser: false));
+            _isLoading = false;
+        });
+        _scrollToBottom();
+    }
+  }
+
   void _showLanguageSelector() {
     showModalBottomSheet(
       context: context,
@@ -438,6 +602,8 @@ class _ChatPageState extends State<ChatPage> {
             onCancelTask: _cancelTask,
             onAdvanceTask: _advanceTask,
             onSelectTask: _selectTask,
+            onUpload: _checkAndTriggerUpload,
+            onPayment: _showPaymentOptions, // Pass callback
           ),
         ],
       ),
@@ -533,10 +699,22 @@ class _ChatPageState extends State<ChatPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (msg.imagePath != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        File(msg.imagePath!),
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   _buildFormattedText(msg.content, msg.isUser),
                   if (msg.checklist != null) ...[
                     const SizedBox(height: 12),
-                    ...msg.checklist!.map((item) => _buildCheckItem(item)),
+                    ...msg.checklist!.map((item) => _buildCheckItem(item, msg.isUser)),
                   ],
                   if (msg.locations != null && msg.mapLat != null && msg.mapLng != null) ...[
                     const SizedBox(height: 12),
@@ -616,37 +794,83 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildLocationCard(Map<String, dynamic> loc) {
-    return GestureDetector(
-      onTap: () => _openUrl(loc['maps_url'] ?? ''),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
-        child: Row(children: [
-          Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.location_on, color: Colors.blue)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(loc['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-            const SizedBox(height: 2),
-            Text(loc['address'] ?? '', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-            if (loc['rating'] != null) Row(children: [const Icon(Icons.star, color: Colors.amber, size: 14), const SizedBox(width: 4), Text('${loc['rating']}', style: TextStyle(color: Colors.grey[600], fontSize: 12))]),
-          ])),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ]),
+    final lat = loc['lat'] as double?;
+    final lng = loc['lng'] as double?;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
+      child: Column(
+        children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.location_on, color: Colors.blue)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(loc['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              const SizedBox(height: 2),
+              Text(loc['address'] ?? '', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+              if (loc['rating'] != null) Row(children: [const Icon(Icons.star, color: Colors.amber, size: 14), const SizedBox(width: 4), Text('${loc['rating']}', style: TextStyle(color: Colors.grey[600], fontSize: 12))]),
+            ])),
+          ]),
+          const SizedBox(height: 12),
+          if (lat != null && lng != null)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _openMap(lat, lng, 'google'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      side: BorderSide(color: Colors.blue.shade200),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset('assets/images/Google_Maps_icon.png', height: 16),
+                        const SizedBox(width: 8),
+                        const Text('Google Maps', style: TextStyle(fontSize: 12, color: Colors.blue)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _openMap(lat, lng, 'waze'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      side: BorderSide(color: Colors.lightBlue.shade200),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset('assets/images/waze.webp', height: 16),
+                        const SizedBox(width: 8),
+                        const Text('Waze', style: TextStyle(fontSize: 12, color: Colors.lightBlue)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildCheckItem(ChecklistItem item) {
+  Widget _buildCheckItem(ChecklistItem item, bool isUser) {
     return GestureDetector(
-      onTap: () => setState(() => item.isChecked = true),
+      onTap: () => setState(() => item.isChecked = !item.isChecked),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: isUser ? Colors.white.withOpacity(0.1): Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          border: Border.all(color: isUser ? Colors.white.withOpacity(0.2) : Colors.grey[300]!),
         ),
         child: Row(
           children: [
@@ -654,9 +878,15 @@ class _ChatPageState extends State<ChatPage> {
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                color: item.isChecked ? Colors.green : Colors.white.withOpacity(0.1),
+                color: item.isChecked 
+                    ? Colors.green 
+                    : (isUser ? Colors.white.withOpacity(0.1) : Colors.white),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: item.isChecked ? Colors.green : Colors.white.withOpacity(0.3), width: 2),
+                border: Border.all(
+                    color: item.isChecked 
+                        ? Colors.green 
+                        : (isUser ? Colors.white.withOpacity(0.3) : Colors.grey[400]!), 
+                    width: 2),
               ),
               child: item.isChecked ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
             ),
@@ -665,8 +895,11 @@ class _ChatPageState extends State<ChatPage> {
               child: Text(
                 item.title,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(item.isChecked ? 0.5 : 0.95),
+                  color: isUser 
+                      ? Colors.white.withOpacity(item.isChecked ? 0.5 : 0.95)
+                      : Colors.black87.withOpacity(item.isChecked ? 0.5 : 1.0),
                   decoration: item.isChecked ? TextDecoration.lineThrough : null,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -715,28 +948,38 @@ class _ChatPageState extends State<ChatPage> {
         child: Row(
           children: [
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: TextField(
-                  controller: _controller,
-                  style: const TextStyle(color: Colors.black87),
-                  decoration: InputDecoration(
-                    hintText: _selectedLanguage == 'malay'
-                        ? 'Taip mesej...'
-                        : _selectedLanguage == 'chinese'
-                            ? '输入信息...'
-                            : 'Ask Journey anything...',
-                    hintStyle: TextStyle(color: Colors.grey[500]),
-                    border: InputBorder.none,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.grey[200]!),
                   ),
-                  onSubmitted: (_) => _sendMessage(),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.attach_file, color: Colors.grey),
+                        onPressed: _showAttachmentOptions,
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          style: const TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            hintText: _selectedLanguage == 'malay'
+                                ? 'Taip mesej...'
+                                : _selectedLanguage == 'chinese'
+                                    ? '输入信息...'
+                                    : 'Ask Journey anything...',
+                            hintStyle: TextStyle(color: Colors.grey[500]),
+                            border: InputBorder.none,
+                          ),
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
             ),
             const SizedBox(width: 10),
             GestureDetector(
@@ -1068,6 +1311,13 @@ class _ChatPageState extends State<ChatPage> {
           ));
         });
         _scrollToBottom();
+
+        // Auto-trigger upload if verified step requires it
+        if (task.currentStepDetails?.requiresUpload == true) {
+             Future.delayed(const Duration(milliseconds: 800), () {
+                 if (mounted) _checkAndTriggerUpload(task, task.currentStepDetails!);
+             });
+        }
       }
     } catch (e) {
       _showSnackBar('Failed to start task: $e');
@@ -1130,11 +1380,161 @@ class _ChatPageState extends State<ChatPage> {
               ));
             });
             _scrollToBottom();
+            _scrollToBottom();
+            
+            // Auto-trigger upload if next step requires it
+            if (task.currentStepDetails?.requiresUpload == true) {
+                 Future.delayed(const Duration(milliseconds: 800), () {
+                     if (mounted) _checkAndTriggerUpload(task, task.currentStepDetails!);
+                 });
+            }
+
+            // Auto-trigger payment if step requires it
+            if (task.currentStepDetails?.requiresPayment == true) {
+                 Future.delayed(const Duration(milliseconds: 800), () {
+                     if (mounted) _showPaymentOptions(task, task.currentStepDetails!);
+                 });
+            }
           }
         }
       }
     } catch (e) {
       _showSnackBar('Failed to advance task: $e');
+    }
+  }
+  
+  void _showPaymentOptions(AgenticTask task, TaskStep step) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Icon(Icons.payment, color: Colors.black87, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Payment Required',
+                        style: const TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Amount: ${step.paymentAmount ?? "Unknown"}',
+                        style: TextStyle(color: Colors.green[700], fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      // Navigate to Payment Page
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => PaymentPage(
+                            paymentDetails: {
+                              'task': task.name,
+                              'amount': step.paymentAmount,
+                              'stepId': step.id,
+                            },
+                            onPaymentComplete: (success) {
+                              if (success) {
+                                _handlePaymentSuccess(task, step);
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF635BFF),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFF635BFF).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Pay Now',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      // Just close, user can pay later via button
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Pay Later',
+                          style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handlePaymentSuccess(AgenticTask task, TaskStep step) async {
+    // Show success message locally first
+    setState(() {
+      _messages.add(ChatMessage(
+        content: "💰 Payment of ${step.paymentAmount} successful! Processing...",
+        isUser: false,
+      ));
+    });
+    _scrollToBottom();
+    
+    // Call backend to record payment if needed, then advance
+    // For now we just advance as the payment was "processed" in the UI mock
+    try {
+        await _apiService.processPayment(task.id, step.id, step.paymentAmount ?? "0");
+        _advanceTask(task.id);
+    } catch (e) {
+        setState(() {
+            _messages.add(ChatMessage(content: "Error recording payment: $e", isUser: false));
+        });
+        _scrollToBottom();
     }
   }
 
@@ -1178,6 +1578,129 @@ class _ChatPageState extends State<ChatPage> {
       });
       _scrollToBottom();
     }
+  }
+
+
+  // Move upload UI here
+  void _checkAndTriggerUpload(AgenticTask task, TaskStep step) {
+     if (step.requiresUpload) {
+        _showTaskUploadSheet(task, step);
+     }
+  }
+
+  void _showTaskUploadSheet(AgenticTask task, TaskStep step) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            
+            // Title
+            Row(
+              children: [
+                const Icon(Icons.upload_file, color: Colors.black87, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Upload Documents',
+                        style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(step.title, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            
+            if (step.requiredDocs != null && step.requiredDocs!.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Required Documents:', style: TextStyle(color: Colors.grey[700], fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    ...step.requiredDocs!.map((doc) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle_outline, size: 14, color: Colors.grey[500]),
+                          const SizedBox(width: 8),
+                          Text(doc, style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                        ],
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async { Navigator.pop(context); await _handleAttachment('file'); _advanceTask(task.id); },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(color: const Color(0xFF6366F1).withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.folder_open, color: Color(0xFF6366F1), size: 28),
+                          const SizedBox(height: 8),
+                          const Text('Choose File', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async { Navigator.pop(context); await _handleAttachment('photo'); _advanceTask(task.id); },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.camera_alt, color: Color(0xFF10B981), size: 28),
+                          const SizedBox(height: 8),
+                          const Text('Take Photo', style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+                onPressed: () { Navigator.pop(context); _advanceTask(task.id); },
+                child: Text('Skip for now', style: TextStyle(color: Colors.grey[500])),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ============== HISTORY MANAGEMENT METHODS ==============
