@@ -10,7 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 
 class IdPage extends StatefulWidget {
-  const IdPage({super.key});
+  final String? initialTab;
+
+  const IdPage({super.key, this.initialTab});
 
   @override
   State<IdPage> createState() => _IdPageState();
@@ -82,6 +84,10 @@ class _IdPageState extends State<IdPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    if (widget.initialTab != null && _cardTabs.contains(widget.initialTab)) {
+      _selectedCardTab = widget.initialTab!;
+    }
+    
     _cardController = PageController(
       viewportFraction: 0.93,
       initialPage: _cardTabs.indexOf(_selectedCardTab),
