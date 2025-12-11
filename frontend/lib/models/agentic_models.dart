@@ -66,6 +66,8 @@ class TaskStep {
   final String title;
   final String description;
   final bool requiresUpload;
+  final bool requiresPayment;
+  final String? paymentAmount;
   final String? conditional;
   final String? url;
   final String? action;
@@ -81,6 +83,8 @@ class TaskStep {
     required this.title,
     required this.description,
     this.requiresUpload = false,
+    this.requiresPayment = false,
+    this.paymentAmount,
     this.conditional,
     this.url,
     this.action,
@@ -98,6 +102,8 @@ class TaskStep {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       requiresUpload: json['requires_upload'] ?? false,
+      requiresPayment: json['requires_payment'] ?? false,
+      paymentAmount: json['payment_amount'],
       conditional: json['conditional'],
       url: json['url'],
       action: json['action'],

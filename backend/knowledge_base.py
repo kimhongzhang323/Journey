@@ -101,8 +101,10 @@ AGENTIC_SERVICES = {
                 "title": "Pay Fees", 
                 "description": "Processing fee varies by visa type and nationality",
                 "url": "https://malaysiavisa.imi.gov.my/evisa/payment.jsp",
-                "action": "open_link",
-                "action_label": "Make Payment"
+                "action": "open_link", # Fallback if not handled natively
+                "action_label": "Make Payment",
+                "requires_payment": True,
+                "payment_amount": "RM 105.00"
             },
             {
                 "id": 6, 
@@ -138,7 +140,7 @@ AGENTIC_SERVICES = {
             {"id": 2, "title": "Book JPN Appointment", "description": "Book slot at nearest JPN branch", "url": "https://www.jpn.gov.my/en/appointment/", "action": "open_link", "action_label": "Book at JPN"},
             {"id": 3, "title": "Prepare Documents", "description": "Police report, birth cert, old IC photo (if available)", "checklist": ["Police report", "Birth certificate", "2 passport photos"]},
             {"id": 4, "title": "Visit JPN", "description": "Submit documents and take photo/fingerprint"},
-            {"id": 5, "title": "Pay Fee", "description": "RM10 (first replacement), RM100+ (subsequent)", "url": "https://www.jpn.gov.my", "action": "open_link", "action_label": "Fee Details"},
+            {"id": 5, "title": "Pay Fee", "description": "RM10 (first replacement), RM100+ (subsequent)", "requires_payment": True, "payment_amount": "RM 10.00", "action_label": "Pay Replacement Fee"},
             {"id": 6, "title": "Collect IC", "description": "Same day or next day collection"}
         ],
         "service": "jpn",
@@ -196,9 +198,8 @@ AGENTIC_SERVICES = {
                 "id": 5, 
                 "title": "Pay Levy & Fees", 
                 "description": "Pay processing fee and annual levy",
-                "url": "https://myimms.imi.gov.my/myimms/payment",
-                "action": "open_link",
-                "action_label": "Make Payment",
+                "requires_payment": True,
+                "payment_amount": "RM 2,130.00", # Example total
                 "fee_breakdown": [
                     {"item": "Annual Levy (Manufacturing)", "amount": "RM1,850"},
                     {"item": "Annual Levy (Service)", "amount": "RM1,490"},

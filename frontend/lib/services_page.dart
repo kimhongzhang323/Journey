@@ -6,6 +6,15 @@ import 'jpn_page.dart';
 import 'main.dart';
 import 'print_ic_page.dart';
 import 'jpj_page.dart';
+import 'immigration_page.dart';
+import 'lhdn_page.dart';
+import 'kwsp_page.dart';
+import 'perkeso_page.dart';
+import 'moh_page.dart';
+import 'id_page.dart';
+import 'scanner_page.dart';
+import 'models/quick_action_item.dart';
+import 'widgets/quick_actions_grid.dart';
 
 class ServicesPage extends StatefulWidget {
   const ServicesPage({super.key});
@@ -16,13 +25,108 @@ class ServicesPage extends StatefulWidget {
 
 class _ServicesPageState extends State<ServicesPage> {
   final PageController _newsController = PageController(viewportFraction: 0.9);
+  final PageController _walletController = PageController(viewportFraction: 0.93);
   int _currentNewsIndex = 0;
+  int _currentWalletIndex = 0;
   List<Map<String, dynamic>> _icRequests = [];
+
+  List<QuickActionItem> _quickActions = [
+    const QuickActionItem(
+        id: 'scan',
+        label: 'Scan',
+        icon: Icons.qr_code_scanner,
+        color: Colors.black,
+        routeName: 'scanner'),
+    const QuickActionItem(
+        id: 'tax',
+        label: 'Tax',
+        icon: Icons.receipt_long,
+        color: Colors.green,
+        routeName: 'lhdn'),
+  ];
+  
+  // Available actions pool for adding
+  final List<QuickActionItem> _allAvailableActions = [
+    const QuickActionItem(id: 'scan', label: 'Scan', icon: Icons.qr_code_scanner, color: Colors.black, routeName: 'scanner'),
+    const QuickActionItem(id: 'tax', label: 'Tax', icon: Icons.receipt_long, color: Colors.green, routeName: 'lhdn'),
+    const QuickActionItem(id: 'mykad', label: 'MyKad', icon: Icons.badge, color: Colors.blue, routeName: 'mykad'),
+    const QuickActionItem(id: 'passport', label: 'Passport', icon: Icons.book, color: Colors.red, routeName: 'passport'),
+    const QuickActionItem(id: 'kwsp', label: 'KWSP', icon: Icons.account_balance, color: Colors.indigo, routeName: 'kwsp'),
+    const QuickActionItem(id: 'perkeso', label: 'Perkeso', icon: Icons.health_and_safety, color: Colors.orange, routeName: 'perkeso'),
+    const QuickActionItem(id: 'moh', label: 'MOH', icon: Icons.medical_services, color: Colors.pink, routeName: 'moh'),
+  ];
+
+  final List<Map<String, dynamic>> _walletCards = [
+    {
+      'title': 'IC Balance',
+      'balance': 'RM 154.50',
+      'icon': Icons.account_balance_wallet,
+      'colors': [Colors.blue[900]!, Colors.blue[700]!],
+      'action': 'Reload',
+      'isActive': true,
+      'logos': ['assets/images/TnG.png'],
+      'topIconAsset': 'assets/images/nfc.webp',
+    },
+    {
+      'title': 'Fuel Subsidy',
+      'balance': 'RM 200.00',
+      'icon': Icons.local_gas_station,
+      'colors': [Colors.orange[900]!, Colors.orange[700]!],
+      'action': 'History',
+      'isActive': true,
+      'logos': [],
+    },
+     {
+      'title': 'MyKasih - SAR',
+      'balance': 'RM 600.00',
+      'icon': Icons.shopping_basket,
+      'colors': [Colors.red[900]!, Colors.red[700]!],
+      'action': 'View',
+      'isActive': true,
+      'logos': ['assets/images/Malaysia_Madani_logo.png'],
+    },
+    {
+      'title': 'Madani Credit',
+      'balance': 'RM 100.00',
+      'icon': Icons.payments,
+      'colors': [Colors.purple[900]!, Colors.purple[700]!],
+      'action': 'Info',
+      'isActive': false,
+      'logos': [],
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadICRequests();
+    _loadQuickActions();
+  }
+
+  Future<void> _loadQuickActions() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedIds = prefs.getStringList('quick_actions_ids');
+    
+    if (savedIds != null) {
+      final loadedActions = savedIds
+          .map((id) => _allAvailableActions.firstWhere(
+                (action) => action.id == id,
+                orElse: () => _allAvailableActions.first, // Fallback (should ideally be handled better)
+              ))
+          .toList();
+      
+      // Filter out any duplicates if they somehow got in, or just trust the list
+      // Also ensure we only show valid actions
+      setState(() {
+        _quickActions = loadedActions.toSet().toList(); 
+      });
+    }
+  }
+
+  Future<void> _saveQuickActions() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = _quickActions.map((a) => a.id).toList();
+    await prefs.setStringList('quick_actions_ids', ids);
   }
 
   Future<void> _loadICRequests() async {
@@ -90,57 +194,36 @@ class _ServicesPageState extends State<ServicesPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Image.asset(
-                          'assets/images/journey_logo.png',
-                          height: 32,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Row(
-                              children: [
-                                Icon(Icons.auto_awesome, color: Colors.indigo[400], size: 24),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Journey',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    foreground: Paint()
-                                      ..shader = LinearGradient(
-                                        colors: [Colors.indigo[400]!, Colors.purple[300]!],
-                                      ).createShader(const Rect.fromLTWH(0, 0, 150, 20)),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
                         Row(
                           children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              child: const Icon(Icons.notifications_none,
-                                  color: Colors.black54),
-                            ),
-                            const SizedBox(width: 12),
-                            GestureDetector(
-                              onTap: _handleLogout,
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.red[50],
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: Icon(Icons.logout,
-                                    color: Colors.red[700], size: 20),
+                            Icon(Icons.auto_awesome, color: Colors.indigo[400], size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Journey',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                foreground: Paint()
+                                  ..shader = LinearGradient(
+                                    colors: [Colors.indigo[400]!, Colors.purple[300]!],
+                                  ).createShader(const Rect.fromLTWH(0, 0, 150, 20)),
                               ),
                             ),
                           ],
+                        ),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey[200]!, width: 2),
+                            image: const DecorationImage(
+                              image: AssetImage('assets/images/profile.jpeg'), // Placeholder
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          child: const Icon(Icons.person, size: 24, color: Colors.grey), // Fallback
                         ),
                       ],
                     ),
@@ -148,126 +231,295 @@ class _ServicesPageState extends State<ServicesPage> {
                 ),
               ),
               
-              // Balance Card
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue[900]!, Colors.blue[700]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Touch \'n Go eWallet',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+              // Wallet Carousel
+              SizedBox(
+                height: 200, // Adjusted height for carousel
+                child: PageView.builder(
+                  controller: _walletController,
+                  onPageChanged: (index) => setState(() => _currentWalletIndex = index),
+                  itemCount: _walletCards.length,
+                  itemBuilder: (context, index) {
+                    final card = _walletCards[index];
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 0), // Side margins for carousel effect
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: card['colors'] as List<Color>,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        Icon(Icons.nfc, color: Colors.white.withOpacity(0.8), size: 20),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'RM 154.50',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (card['colors'] as List<Color>).first.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           ),
-                          child: const Row(
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Icon(Icons.add, color: Colors.white, size: 16),
-                              SizedBox(width: 4),
                               Text(
-                                'Reload',
+                                card['title'],
                                 style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
+                              card['topIconAsset'] != null
+                                  ? Image.asset(card['topIconAsset'], height: 24, fit: BoxFit.contain)
+                                  : Icon(card['icon'], color: Colors.white.withOpacity(0.8), size: 22),
                             ],
                           ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'Active',
-                          style: TextStyle(
-                            color: Colors.greenAccent[100],
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                          Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                                const Text(
+                                  'Available Balance',
+                                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        card['balance'],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: -1,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (card['logos'] != null && (card['logos'] as List).isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 8.0),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: (card['logos'] as List<String>).map((logo) => Padding(
+                                            padding: const EdgeInsets.only(left: 6.0),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.2),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Image.asset(logo, height: 35, fit: BoxFit.contain),
+                                            ), 
+                                          )).toList(),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (card['action'] == 'Reload') {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Reload IC Balance'),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ListTile(
+                                              leading: const Icon(Icons.touch_app, color: Colors.blue),
+                                              title: const Text('Auto-debit from TnG eWallet'),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Auto-debit enabled')));
+                                              },
+                                            ),
+                                            ListTile(
+                                              leading: const Icon(Icons.payment, color: Colors.green),
+                                              title: const Text('Reload from Bank / Card'),
+                                              onTap: () {
+                                                Navigator.pop(context);
+                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Redirecting to payment gateway...')));
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${card['action']} tapped for ${card['title']}')));
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        card['action'] == 'Reload' ? Icons.add : Icons.arrow_forward,
+                                        color: Colors.white, size: 16
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        card['action'],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              if (card['isActive'])
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                     color: Colors.black.withOpacity(0.2),
+                                     borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    'Active',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
+              ),
+              const SizedBox(height: 12),
+              // Dots Indicator for Wallet
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_walletCards.length, (index) {
+                  return Container(
+                    width: _currentWalletIndex == index ? 20 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: _currentWalletIndex == index ? Colors.blue[900] : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }),
               ),
               
               const SizedBox(height: 12),
 
               // Quick Actions
               Container(
-                padding: const EdgeInsets.all(24),
                 color: Colors.white,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Quick Actions',
-                       
-                        style: TextStyle(
-                            
-                            fontSize: 16, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildQuickAction(
-                            
-                            Icons.qr_code_scanner, 'Scan', Colors.black),
-                        _buildQuickAction(
-                            
-                            Icons.credit_card, 'MyKad', Colors.blue),
-                        _buildQuickAction(
-                            
-                            Icons.flight_takeoff, 'Passport', Colors.indigo),
-                        _buildQuickAction(
-                            
-                            Icons.receipt_long, 'Tax', Colors.green),
-                      ],
+                padding: const EdgeInsets.only(bottom: 24),
+                child: QuickActionsGrid(
+                      items: _quickActions,
+                      onReorder: (newItems) {
+                        setState(() {
+                          _quickActions = newItems;
+                          _saveQuickActions();
+                        });
+                      },
+                      onAddPressed: () {
+                         showModalBottomSheet(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          builder: (context) {
+                            return Container(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Add Quick Action',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Expanded(
+                                    child: GridView.builder(
+                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 4,
+                                        mainAxisSpacing: 16,
+                                        crossAxisSpacing: 16,
+                                      ),
+                                      itemCount: _allAvailableActions.length,
+                                      itemBuilder: (context, index) {
+                                        final item = _allAvailableActions[index];
+                                        final isAdded = _quickActions.any((a) => a.id == item.id);
+                                        return Opacity(
+                                          opacity: isAdded ? 0.4 : 1.0,
+                                          child: GestureDetector(
+                                            onTap: isAdded
+                                                ? null
+                                                : () {
+                                                    setState(() {
+                                                      _quickActions.add(item);
+                                                      _saveQuickActions();
+                                                    });
+                                                    Navigator.pop(context);
+                                                  },
+                                            child: Column(
+                                              children: [
+                                                Container(
+                                                  width: 48,
+                                                  height: 48,
+                                                  decoration: BoxDecoration(
+                                                    color: item.color.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: Icon(item.icon, color: item.color, size: 24),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(item.label, style: const TextStyle(fontSize: 11)),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      onTap: (item) async {
+                         if (item.routeName == 'scanner') {
+                            final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => const ScannerPage()));
+                            if (result != null && mounted) {
+                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scanned: $result')));
+                            }
+                         } else if (item.routeName == 'lhdn') {
+                           Navigator.push(context, MaterialPageRoute(builder: (context) => const LHDNPage()));
+                         } else {
+                           // Handle generic routes or mock pages
+                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Tapped ${item.label}')));
+                         }
+                      },
                     ),
-                  ],
-                ),
               ),
               const SizedBox(height: 12),
 
@@ -390,7 +642,8 @@ class _ServicesPageState extends State<ServicesPage> {
                       crossAxisSpacing: 12,
                       childAspectRatio: 0.8,
                       children: [
-                        _buildServiceIcon(Icons.badge, 'JPN', Colors.blue,
+                        _buildServiceIcon('JPN', Colors.blue,
+                            assetPath: 'assets/images/jpn.png',
                             onTap: () {
                           Navigator.push(
                               context,
@@ -398,23 +651,32 @@ class _ServicesPageState extends State<ServicesPage> {
                                   builder: (context) => const JPNPage()));
                         }),
                         _buildServiceIcon(
-                            Icons.flight, 'Immigration', Colors.indigo),
+                            'Immigration', Colors.indigo, assetPath: 'assets/images/Immigration.png', onTap: () {
+                               Navigator.push(context, MaterialPageRoute(builder: (context) => const ImmigrationPage()));
+                            }),
                         _buildServiceIcon(
-                            Icons.directions_car, 'JPJ', Colors.orange, onTap: () {
+                            'JPJ', Colors.orange, assetPath: 'assets/images/jpj.png', onTap: () {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => const JPJPage()));
                             }),
-                        _buildServiceIcon(Icons.receipt, 'LHDN', Colors.green),
-                        _buildServiceIcon(Icons.savings, 'KWSP', Colors.teal),
+                        _buildServiceIcon('LHDN', Colors.green, assetPath: 'assets/images/LHDN.png', onTap: () {
+                               Navigator.push(context, MaterialPageRoute(builder: (context) => const LHDNPage()));
+                            }),
+                        _buildServiceIcon('KWSP', Colors.teal, assetPath: 'assets/images/KWSP.jpg', onTap: () {
+                               Navigator.push(context, MaterialPageRoute(builder: (context) => const KWSPPage()));
+                            }),
                         _buildServiceIcon(
-                            Icons.security, 'PERKESO', Colors.cyan),
+                            'PERKESO', Colors.cyan, icon: Icons.security, onTap: () {
+                               Navigator.push(context, MaterialPageRoute(builder: (context) => const PerkesoPage()));
+                            }),
                         _buildServiceIcon(
-                            Icons.print, 'Print/Scan', Colors.purple, onTap: () {
+                            'Print/Scan', Colors.purple, icon: Icons.print, onTap: () {
                               Navigator.push(context, MaterialPageRoute(builder: (context) => const PrintIcPage()));
                             }),
                         _buildServiceIcon(
-                            Icons.local_hospital, 'MOH', Colors.red),
-                        _buildServiceIcon(
-                            Icons.more_horiz, 'More', Colors.grey),
+                            'MOH', Colors.red, assetPath: 'assets/images/MOH.webp', onTap: () {
+                               Navigator.push(context, MaterialPageRoute(builder: (context) => const MOHPage()));
+                            }),
+
                       ],
                     ),
                   ],
@@ -474,6 +736,34 @@ class _ServicesPageState extends State<ServicesPage> {
                 ),
               ),
               const SizedBox(height: 24),
+              
+              // Powered By Footer
+              Opacity(
+                opacity: 0.6,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Powered by',
+                        style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(width: 8),
+                      Image.asset('assets/images/TnG.png', height: 16),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 1, 
+                        height: 12, 
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(width: 8),
+                      Image.asset('assets/images/Malaysia_Madani_logo.png', height: 16),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -481,26 +771,9 @@ class _ServicesPageState extends State<ServicesPage> {
     );
   }
 
-  Widget _buildQuickAction(IconData icon, String label, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(icon, color: color, size: 26),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[700])),
-      ],
-    );
-  }
 
-  Widget _buildServiceIcon(IconData icon, String label, Color color,
-      {VoidCallback? onTap}) {
+  Widget _buildServiceIcon(String label, Color color,
+      {VoidCallback? onTap, IconData? icon, String? assetPath}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -508,11 +781,14 @@ class _ServicesPageState extends State<ServicesPage> {
           Container(
             width: 48,
             height: 48,
+            padding: assetPath != null ? const EdgeInsets.all(8) : null,
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: color, size: 22),
+            child: assetPath != null
+                ? Image.asset(assetPath, fit: BoxFit.contain)
+                : Icon(icon, color: color, size: 22),
           ),
           const SizedBox(height: 8),
           Text(

@@ -9,6 +9,8 @@ class TaskButton extends StatefulWidget {
   final Function(String taskId) onCancelTask;
   final Function(String taskId) onAdvanceTask;
   final Function(String taskId) onSelectTask;
+  final Function(AgenticTask task, TaskStep step) onUpload;
+  final Function(AgenticTask task, TaskStep step) onPayment; // Add callback
 
   const TaskButton({
     super.key,
@@ -16,6 +18,8 @@ class TaskButton extends StatefulWidget {
     required this.onCancelTask,
     required this.onAdvanceTask,
     required this.onSelectTask,
+    required this.onUpload,
+    required this.onPayment, // Required callback
   });
 
   @override
@@ -60,291 +64,7 @@ class _TaskButtonState extends State<TaskButton> with SingleTickerProviderStateM
     }
   }
 
-  void _showUploadSheet(BuildContext context, AgenticTask task, TaskStep step) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Title
-            Row(
-              children: [
-                const Icon(Icons.upload_file, color: Colors.black87, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Upload Documents',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        step.title,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            
-            // Required documents hint
-            if (step.requiredDocs != null && step.requiredDocs!.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Required Documents:',
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...step.requiredDocs!.map((doc) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(
-                        children: [
-                          Icon(Icons.check_circle_outline, 
-                            size: 14, 
-                            color: Colors.grey[500]),
-                          const SizedBox(width: 8),
-                          Text(
-                            doc,
-                            style: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            
-            // Upload options
-            Row(
-              children: [
-                // Choose File
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await _pickFile(task);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6366F1).withAlpha(51),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF6366F1).withAlpha(102)),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF6366F1).withAlpha(77),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.folder_open, color: Colors.white, size: 28),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Choose File',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'PDF, Images, Docs',
-                            style: TextStyle(
-                              color: Colors.white.withAlpha(200),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                
-                // Take Photo
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await _takePhoto(task);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withAlpha(51),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF10B981).withAlpha(102)),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withAlpha(77),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Take Photo',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Use Camera',
-                            style: TextStyle(
-                              color: Colors.white.withAlpha(200),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Skip option
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-                widget.onAdvanceTask(task.id);
-              },
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  'Skip for now',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Future<void> _pickFile(AgenticTask task) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
-        allowMultiple: true,
-      );
-      
-      if (result != null && result.files.isNotEmpty) {
-        // Handle uploaded files
-        final fileNames = result.files.map((f) => f.name).join(', ');
-        _showUploadSuccess(fileNames);
-        widget.onAdvanceTask(task.id);
-      }
-    } catch (e) {
-      debugPrint('File pick error: $e');
-    }
-  }
-
-  Future<void> _takePhoto(AgenticTask task) async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? photo = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
-      );
-      
-      if (photo != null) {
-        _showUploadSuccess(photo.name);
-        widget.onAdvanceTask(task.id);
-      }
-    } catch (e) {
-      debugPrint('Camera error: $e');
-    }
-  }
-
-  void _showUploadSuccess(String fileName) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text('Uploaded: $fileName'),
-            ),
-          ],
-        ),
-        backgroundColor: const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -695,9 +415,15 @@ class _TaskButtonState extends State<TaskButton> with SingleTickerProviderStateM
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withAlpha(50),
+                        color: const Color(0xFF10B981), // Solid Green
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF10B981).withAlpha(80)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -725,7 +451,10 @@ class _TaskButtonState extends State<TaskButton> with SingleTickerProviderStateM
                   child: GestureDetector(
                     onTap: () {
                       if (step?.requiresUpload == true) {
-                        _showUploadSheet(context, task, step!);
+                        widget.onUpload(task, step!);
+                      } else if (step?.requiresPayment == true) {
+                         // Trigger payment
+                         widget.onPayment(task, step!);
                       } else {
                         widget.onAdvanceTask(task.id);
                       }
@@ -733,9 +462,15 @@ class _TaskButtonState extends State<TaskButton> with SingleTickerProviderStateM
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF6366F1).withAlpha(50),
+                        color: const Color(0xFF6366F1), // Solid Indigo
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF6366F1).withAlpha(80)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF6366F1).withOpacity(0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -768,11 +503,11 @@ class _TaskButtonState extends State<TaskButton> with SingleTickerProviderStateM
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(20),
+                      color: Colors.grey[200], // Visible Grey
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withAlpha(30)),
+                      border: Border.all(color: Colors.grey[300]!),
                     ),
-                    child: const Icon(Icons.check, size: 14, color: Colors.white),
+                    child: Icon(Icons.check, size: 14, color: Colors.grey[700]),
                   ),
                 ),
               ],
