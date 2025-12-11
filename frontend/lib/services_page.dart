@@ -19,6 +19,9 @@ import 'package:frontend/pages/ic_dashboard_page.dart';
 import 'package:frontend/pages/rapidkl_page.dart';
 
 
+import 'package:frontend/pages/esignature_page.dart';
+import 'package:frontend/pages/family_chain_page.dart';
+
 class ServicesPage extends StatefulWidget {
   const ServicesPage({super.key});
 
@@ -53,6 +56,12 @@ class _ServicesPageState extends State<ServicesPage> {
         color: Colors.blueAccent,
         routeName: 'rapidkl',
         assetPath: 'assets/images/rapidKL.png'),
+    const QuickActionItem(
+        id: 'esign', 
+        label: 'eSignature', 
+        icon: Icons.draw, 
+        color: Colors.purpleAccent, 
+        routeName: 'esignature'),
   ];
   
   // Available actions pool for adding
@@ -65,6 +74,8 @@ class _ServicesPageState extends State<ServicesPage> {
     const QuickActionItem(id: 'perkeso', label: 'Perkeso', icon: Icons.health_and_safety, color: Colors.orange, routeName: 'perkeso'),
     const QuickActionItem(id: 'moh', label: 'MOH', icon: Icons.medical_services, color: Colors.pink, routeName: 'moh'),
     const QuickActionItem(id: 'rapidkl', label: 'RapidKL', icon: Icons.directions_bus, color: Colors.blueAccent, routeName: 'rapidkl', assetPath: 'assets/images/rapidKL.png'),
+    const QuickActionItem(id: 'esign', label: 'eSignature', icon: Icons.draw, color: Colors.purpleAccent, routeName: 'esignature'),
+    const QuickActionItem(id: 'family', label: 'Family Chain', icon: Icons.family_restroom, color: Colors.pinkAccent, routeName: 'family_chain'),
   ];
 
   final List<Map<String, dynamic>> _walletCards = [
@@ -538,6 +549,10 @@ class _ServicesPageState extends State<ServicesPage> {
                            Navigator.push(context, MaterialPageRoute(builder: (context) => const LHDNPage()));
                          } else if (item.routeName == 'rapidkl') {
                            Navigator.push(context, MaterialPageRoute(builder: (context) => const RapidKLPage()));
+                         } else if (item.routeName == 'esignature') {
+                           Navigator.push(context, MaterialPageRoute(builder: (context) => const ESignaturePage()));
+                         } else if (item.routeName == 'family_chain') {
+                           Navigator.push(context, MaterialPageRoute(builder: (context) => const FamilyChainPage()));
                          } else {
                            // Handle generic routes or mock pages
                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Tapped ${item.label}')));
@@ -700,6 +715,12 @@ class _ServicesPageState extends State<ServicesPage> {
                             'MOH', Colors.red, assetPath: 'assets/images/MOH.webp', onTap: () {
                                Navigator.push(context, MaterialPageRoute(builder: (context) => const MOHPage()));
                             }),
+                         _buildServiceIcon('eSignature', Colors.purpleAccent, icon: Icons.draw, onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const ESignaturePage()));
+                         }),
+                         _buildServiceIcon('Family Chain', Colors.pinkAccent, icon: Icons.family_restroom, onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const FamilyChainPage()));
+                         }),
 
                       ],
                     ),
