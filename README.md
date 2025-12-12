@@ -1,47 +1,13 @@
-﻿# Journey
+# Journey
 
-An advanced, AI-powered Digital Identity mobile application designed for Malaysia's specific government services. Digital ID Pro Max integrates a secure digital wallet, seamless payment gateway, and an intelligent chatbot assistant to simplify interactions with JPN, JPJ, Immigration, and LHDN services.
+**Journey** is an advanced, AI-powered **Digital ID application** designed to unify Malaysian government services into a single digital identity platform. It simplifies interactions with agencies like **JPN**, **JPJ**, **Immigration**, and **LHDN** by integrating a secure digital wallet, a seamless payment gateway, and an intelligent chatbot assistant.
 
-![Project Banner](frontend/assets/images/icBack.jpg)
+## Core Highlights
 
-## 🚀 Key Features
-
-### 1. **Unified Digital Identity Dashboard**
--   **Digital IC & Driving License**: Securely view and manage your MyKad and Driving License digitally.
--   **NFC Balance Check**: Real-time balance checking for Touch 'n Go cards via the new **IC Dashboard**.
--   **Transaction History**: View detailed transaction logs for tolls, parking, and transit.
-
-### 2. **Government Services Hub**
--   **One-Stop Access**: Direct integration with key agencies:
-    -   **JPN**: MyKad replacement, birth certificate extracts.
-    -   **Immigration**: Passport renewal, travel status checks.
-    -   **JPJ**: Road tax renewal, summons payment, driving license renewal.
-    -   **LHDN**: Tax filing (e-Filing), assessment review.
-    -   **RapidKL**: Purchase My50, City Pass, and other transit passes directly.
-    -   **KWSP & Perkeso**: Account balance and benefit claims.
-
-### 3. **Smart AI Assistant**
--   **Context-Aware Help**: Ask questions like "How do I renew my passport?" and get step-by-step guidance.
--   **Service Linking**: The AI can deep-link you directly to the specific service page you need.
-
-### 4. **Seamless Payment Gateway**
--   **Multi-Channel Support**: Pay for government fees using:
-    -   **Credit/Debit Cards** (Visa, Mastercard)
-    -   **FPX Online Banking** (Maybank, CIMB, RHB, etc.)
-    -   **E-Wallets** (TnG eWallet, GrabPay, Boost, ShopeePay)
--   **Regulatory Compliance**: Designed with standard Malaysian payment gateway aesthetics and regulatory notices.
-
-### 5. **Cross-Platform Auto-fill Demo (New!)**
--   **"Fill with Journey"**: A demonstration of secure cross-device data transfer.
--   **Mock Website**: A clone of the **MyIMMS Passport Renewal** portal (`mock_website/`).
--   **Scan-to-Fill**: Scan a QR code on the website using the mobile app to securely and automatically fill in your personal details.
-
-### 6. **Advanced Security Layer (New!)**
--   **Secure Storage**: AES-256 encrypted local storage for all sensitive ID data.
--   **Remote Revocation**: "Kill Switch" functionality allows remote ID invalidation and instant local data wiping.
--   **Tamper Detection**: HMAC-SHA256 request signing ensures API integrity.
--   **Selective Disclosure**: Zero-Knowledge Proof (ZKP) simulation allows verifying attributes (e.g., Age > 18) without revealing underlying data.
--   **Audit & AI**: Private Blockchain ledger for immutable security logging and AI-powered anomaly detection.
+1.  **Unified Dashboard**: Manage Digital MyKad, Driving Licenses, and check Touch 'n Go NFC balances.
+2.  **Smart AI Assistant**: Powered by **Gemini Pro** to provide context-aware help and deep-linking to services.
+3.  **Advanced Security**: Features **AES-256 encryption**, a "Kill Switch" for remote revocation, and **Blockchain-style logging**.
+4.  **Cross-Platform Integration**: Demonstrates secure **autocomplete** and data transfer (**Scan-to-Fill**) between the mobile app and web portals.
 
 ---
 
@@ -51,12 +17,12 @@ An advanced, AI-powered Digital Identity mobile application designed for Malaysi
 -   **Framework**: [Flutter](https://flutter.dev/) (Dart)
 -   **State Management**: `Provider` / `ChangeNotifier`
 -   **UI Components**: Material 3 Design
--   **Navigation**: GoRouter (implied structure)
+-   **Navigation**: GoRouter
 
 ### Backend (API & Logic)
 -   **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python)
 -   **AI Engine**: Gemini Pro (via Google Generative AI)
--   **Database**: JSON-based mock database (for prototype flexibility)
+-   **Database**: JSON-based mock database
 
 ---
 
@@ -65,7 +31,6 @@ An advanced, AI-powered Digital Identity mobile application designed for Malaysi
 ### Prerequisites
 -   **Flutter SDK**: [Install Flutter](https://docs.flutter.dev/get-started/install/windows)
 -   **Python 3.10+**: [Install Python](https://www.python.org/downloads/)
--   **Android Studio / VS Code**: For development.
 
 ### 1. Backend Setup
 
@@ -76,7 +41,7 @@ An advanced, AI-powered Digital Identity mobile application designed for Malaysi
 2.  Create a virtual environment:
     ```bash
     python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    venv\Scripts\activate
     ```
 3.  Install dependencies:
     ```bash
@@ -112,19 +77,6 @@ An advanced, AI-powered Digital Identity mobile application designed for Malaysi
 
 ---
 
-## 📱 Screenshots
-
-| Home & Quick Actions | Services & Agencies | Payment Gateway |
-|:---:|:---:|:---:|
-| *(Add Screenshot)* | *(Add Screenshot)* | *(Add Screenshot)* |
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-> **Note**: This is a prototype application developed for demonstration purposes. It simulates interactions with government services and payment gateways but does not process real transactions or access live government databases.
-
